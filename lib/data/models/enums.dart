@@ -6,6 +6,7 @@ part 'enums.g.dart';
 enum TransactionType {
   @HiveField(0) income,
   @HiveField(1) expense,
+  @HiveField(2) investment,
 }
 
 @HiveType(typeId: 1)

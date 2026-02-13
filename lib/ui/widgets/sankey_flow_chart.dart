@@ -14,7 +14,12 @@ class SankeyFlowChart extends StatefulWidget {
     required this.expenses,
     required this.incomeBreakdown,
     required this.expenseBreakdown,
+    this.investments = 0,
+    this.investmentBreakdown = const [],
   });
+
+  final double investments;
+  final List<CategoryVolume> investmentBreakdown;
 
   @override
   State<SankeyFlowChart> createState() => _SankeyFlowChartState();
@@ -69,8 +74,10 @@ class _SankeyFlowChartState extends State<SankeyFlowChart> with SingleTickerProv
           painter: FlowPainter(
             income: widget.income,
             expenses: widget.expenses,
+            investments: widget.investments,
             incomeBreakdown: widget.incomeBreakdown,
             expenseBreakdown: widget.expenseBreakdown,
+            investmentBreakdown: widget.investmentBreakdown,
             progress: _animation.value,
           ),
         );
@@ -90,15 +97,19 @@ class CategoryVolume {
 class FlowPainter extends CustomPainter {
   final double income;
   final double expenses;
+  final double investments;
   final List<CategoryVolume> incomeBreakdown;
   final List<CategoryVolume> expenseBreakdown;
+  final List<CategoryVolume> investmentBreakdown;
   final double progress;
 
   FlowPainter({
     required this.income,
     required this.expenses,
+    required this.investments,
     required this.incomeBreakdown,
     required this.expenseBreakdown,
+    required this.investmentBreakdown,
     required this.progress,
   });
 
@@ -113,115 +124,109 @@ class FlowPainter extends CustomPainter {
     final double midX = size.width / 2;
     final double rightX = size.width - padding - nodeWidth;
 
-    final double totalScale = income > 0 ? income : (expenses > 0 ? expenses : 100);
-    // Adjusted height scale to prevent overflow
+    final double totalScale = income > 0 ? income : 100;
     final double heightScale = (chartHeight - 60) / totalScale;
 
-    // Animation phases
-    double leftBarsProgress = (progress / 0.2).clamp(0.0, 1.0);
-    double leftToMidProgress = ((progress - 0.2) / 0.3).clamp(0.0, 1.0);
-    double midBarProgress = ((progress - 0.5) / 0.1).clamp(0.0, 1.0);
-    double midToRightProgress = ((progress - 0.6) / 0.3).clamp(0.0, 1.0);
-    double rightBarsProgress = ((progress - 0.9) / 0.1).clamp(0.0, 1.0);
+    // Animation phases (Simplified for 2-column)
+    double leftBarProgress = (progress / 0.3).clamp(0.0, 1.0);
+    double flowProgress = ((progress - 0.3) / 0.4).clamp(0.0, 1.0);
+    double rightBarsProgress = ((progress - 0.7) / 0.2).clamp(0.0, 1.0);
 
-    // --- LEFT NODES (Income Categories) ---
-    double currentLeftY = 30.0;
-    double currentMidEntryY = 30.0;
-
-    for (var inc in incomeBreakdown) {
-      final double nodeHeight = inc.amount * heightScale;
-      // Ensure minimum height for visibility
-      final double drawHeight = nodeHeight < 2 ? 2 : nodeHeight; 
-      
-      if (leftBarsProgress > 0) {
-        final paint = Paint()..color = inc.color.withOpacity(leftBarsProgress);
-        canvas.drawRRect(
-          RRect.fromRectAndRadius(Rect.fromLTWH(leftX, currentLeftY, nodeWidth, drawHeight * leftBarsProgress), const Radius.circular(4)),
-          paint
-        );
-        _drawLabel(canvas, inc.name, currencyFormat.format(inc.amount), Offset(leftX + 20, currentLeftY + drawHeight / 2), opacity: leftBarsProgress);
-      }
-
-      if (leftToMidProgress > 0) {
-        _drawCurvedFlow(
-          canvas, 
-          leftX + nodeWidth, currentLeftY, 
-          midX, currentMidEntryY, 
-          drawHeight, 
-          inc.color.withOpacity(0.3), 
-          leftToMidProgress
-        );
-      }
-
-      currentLeftY += drawHeight + 10; // Reduced spacing
-      currentMidEntryY += drawHeight; // Stack them in the middle
-    }
-
-    // --- MIDDLE NODE (Total Income) ---
-    final double midNodeHeight = income * heightScale;
-    if (midBarProgress > 0) {
+    // --- LEFT NODE (Total Income) ---
+    final double leftNodeHeight = income * heightScale;
+    
+    if (leftBarProgress > 0) {
       canvas.drawRRect(
-        RRect.fromRectAndRadius(Rect.fromLTWH(midX, 30, nodeWidth, midNodeHeight * midBarProgress), const Radius.circular(4)), 
-        Paint()..color = const Color(0xFF0055D4).withOpacity(midBarProgress)
+        RRect.fromRectAndRadius(Rect.fromLTWH(leftX, 30, nodeWidth, leftNodeHeight * leftBarProgress), const Radius.circular(4)), 
+        Paint()..color = const Color(0xFF0055D4).withOpacity(leftBarProgress)
       );
-      // Draw label to the right of the blue bar
-      _drawLabel(canvas, "Toplam Gelir", currencyFormat.format(income), Offset(midX + nodeWidth, 8 + midNodeHeight / 2), alignRight: false, opacity: midBarProgress);
+      // Label for Total Income
+      _drawLabel(canvas, "Toplam Gelir", currencyFormat.format(income), Offset(leftX + nodeWidth, 8 + leftNodeHeight / 2), alignRight: false, opacity: leftBarProgress);
     }
 
-    // --- CONNECTIONS MIDDLE TO RIGHT ---
+    // --- RIGHT NODES (Expenses, Investments, Savings) ---
     double currentRightY = 30.0;
-    double currentMidExitY = 30.0;
+    double currentLeftExitY = 30.0;
 
     // 1. Expenses flows
     for (var exp in expenseBreakdown) {
       final double expHeight = exp.amount * heightScale;
-       final double drawHeight = expHeight < 2 ? 2 : expHeight;
+      final double drawHeight = expHeight < 2 ? 2 : expHeight;
 
-      if (midToRightProgress > 0) {
+      if (flowProgress > 0) {
         _drawCurvedFlow(
           canvas, 
-          midX + nodeWidth, currentMidExitY, 
+          leftX + nodeWidth, currentLeftExitY, 
           rightX, currentRightY, 
           drawHeight, 
           exp.color.withOpacity(0.3), 
-          midToRightProgress
+          flowProgress
         );
       }
 
       if (rightBarsProgress > 0) {
         canvas.drawRRect(
           RRect.fromRectAndRadius(Rect.fromLTWH(rightX, currentRightY, nodeWidth, drawHeight * rightBarsProgress), const Radius.circular(4)),
-          Paint()..color = exp.color.withOpacity(rightBarsProgress) // Use category color instead of grey
+          Paint()..color = exp.color.withOpacity(rightBarsProgress)
         );
         _drawLabel(canvas, exp.name, currencyFormat.format(exp.amount), Offset(rightX - 10, currentRightY + drawHeight / 2), alignRight: true, opacity: rightBarsProgress);
       }
       
       currentRightY += drawHeight + 10;
-      currentMidExitY += drawHeight;
+      currentLeftExitY += drawHeight;
     }
 
-    // 2. Savings flow (Remaining)
-    final double savings = income - expenses;
-    if (savings > 0) {
-      final double savingsHeight = savings * heightScale;
-      
-      if (midToRightProgress > 0) {
+    // 2. Investment flows
+    for (var inv in investmentBreakdown) {
+      final double invHeight = inv.amount * heightScale;
+      final double drawHeight = invHeight < 2 ? 2 : invHeight;
+
+      if (flowProgress > 0) {
         _drawCurvedFlow(
           canvas, 
-          midX + nodeWidth, currentMidExitY, 
+          leftX + nodeWidth, currentLeftExitY, 
           rightX, currentRightY, 
-          savingsHeight, 
-          const Color(0xFF10B981).withOpacity(0.3), 
-          midToRightProgress
+          drawHeight, 
+          inv.color.withOpacity(0.3), 
+          flowProgress
         );
       }
 
       if (rightBarsProgress > 0) {
         canvas.drawRRect(
-          RRect.fromRectAndRadius(Rect.fromLTWH(rightX, currentRightY, nodeWidth, savingsHeight * rightBarsProgress), const Radius.circular(4)),
-          Paint()..color = const Color(0xFF10B981).withOpacity(rightBarsProgress)
+          RRect.fromRectAndRadius(Rect.fromLTWH(rightX, currentRightY, nodeWidth, drawHeight * rightBarsProgress), const Radius.circular(4)),
+          Paint()..color = inv.color.withOpacity(rightBarsProgress)
         );
-        _drawLabel(canvas, "Artan Gelir", currencyFormat.format(savings), Offset(rightX - 10, currentRightY + savingsHeight / 2), alignRight: true, opacity: rightBarsProgress);
+        _drawLabel(canvas, inv.name, currencyFormat.format(inv.amount), Offset(rightX - 10, currentRightY + drawHeight / 2), alignRight: true, opacity: rightBarsProgress);
+      }
+      
+      currentRightY += drawHeight + 10;
+      currentLeftExitY += drawHeight;
+    }
+
+    // 3. Savings flow (Remaining)
+    final double savings = income - expenses - investments;
+    if (savings > 0) {
+      final double savingsHeight = savings * heightScale;
+      final double drawHeight = savingsHeight < 2 ? 2 : savingsHeight;
+
+       if (flowProgress > 0) {
+        _drawCurvedFlow(
+          canvas, 
+          leftX + nodeWidth, currentLeftExitY, 
+          rightX, currentRightY, 
+          drawHeight, 
+          const Color(0xFF4CAF50).withOpacity(0.3), // Green for savings
+          flowProgress
+        );
+      }
+
+      if (rightBarsProgress > 0) {
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(Rect.fromLTWH(rightX, currentRightY, nodeWidth, drawHeight * rightBarsProgress), const Radius.circular(4)),
+          Paint()..color = const Color(0xFF4CAF50).withOpacity(rightBarsProgress)
+        );
+        _drawLabel(canvas, "Artan Gelir", currencyFormat.format(savings), Offset(rightX - 10, currentRightY + drawHeight / 2), alignRight: true, opacity: rightBarsProgress);
       }
     }
   }

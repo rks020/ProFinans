@@ -16,6 +16,7 @@ class DashboardScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final groups = ref.watch(groupsProvider);
     final dashboardData = ref.watch(expenseDashboardProvider);
+    final investmentData = ref.watch(investmentDashboardProvider);
     final appSettings = ref.watch(appSettingsProvider);
 
     return Scaffold(
@@ -57,6 +58,16 @@ class DashboardScreen extends ConsumerWidget {
               padding: const EdgeInsets.all(16.0),
               child: VerticalSummaryCards(data: dashboardData),
             ),
+            if (investmentData.values.any((l) => l.isNotEmpty)) ...[
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16.0),
+                child: Text("Yatırımlar", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: InvestmentSummaryCards(data: investmentData),
+              ),
+            ],
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
               child: _BottomSummary(),
@@ -133,6 +144,44 @@ class VerticalSummaryCards extends StatelessWidget {
           color: const Color(0xFF0F141A),
           textColor: AppTheme.futureColor,
         ),
+      ],
+    );
+  }
+}
+
+class InvestmentSummaryCards extends StatelessWidget {
+  final Map<String, List<Transaction>> data;
+
+  const InvestmentSummaryCards({required this.data});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        if (data['delayed']?.isNotEmpty == true)
+          VerticalSummaryCard(
+            title: 'Geciken Yatırım',
+            transactions: data['delayed'] ?? [],
+            color: const Color(0xFF262000), // Dark Gold
+            textColor: const Color(0xFFFFD700),
+          ),
+        if (data['delayed']?.isNotEmpty == true) const SizedBox(height: 12),
+        
+        VerticalSummaryCard(
+          title: 'Tamamlanan Yatırım',
+          transactions: data['paid'] ?? [],
+          color: const Color(0xFF262000), // Dark Gold
+          textColor: const Color(0xFFFFD700),
+        ),
+        const SizedBox(height: 12),
+        
+        if (data['upcoming']?.isNotEmpty == true)
+          VerticalSummaryCard(
+            title: 'Planlanan Yatırım',
+            transactions: data['upcoming'] ?? [],
+            color: const Color(0xFF1A1A1A),
+            textColor: Colors.white70,
+          ),
       ],
     );
   }
@@ -452,6 +501,11 @@ class _BottomSummary extends ConsumerWidget {
     final delayed = dashboardData['delayed']?.fold(0.0, (sum, t) => sum! + t.amount) ?? 0.0;
     final paid = dashboardData['paid']?.fold(0.0, (sum, t) => sum! + t.amount) ?? 0.0;
     final upcoming = dashboardData['upcoming']?.fold(0.0, (sum, t) => sum! + t.amount) ?? 0.0;
+    
+    final investmentData = ref.watch(investmentDashboardProvider);
+    final investmentTotal = (investmentData['paid']?.fold(0.0, (sum, t) => sum! + t.amount) ?? 0.0) +
+                           (investmentData['delayed']?.fold(0.0, (sum, t) => sum! + t.amount) ?? 0.0) +
+                           (investmentData['upcoming']?.fold(0.0, (sum, t) => sum! + t.amount) ?? 0.0);
 
     final total = delayed + paid + upcoming;
     final remaining = delayed + upcoming;
@@ -479,6 +533,18 @@ class _BottomSummary extends ConsumerWidget {
             Text(remainingStr, style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
           ],
         ),
+        if (investmentTotal > 0)
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              const Text('Yatırım', style: TextStyle(color: Colors.grey, fontSize: 13)),
+              const SizedBox(height: 4),
+              Text(
+                format.format(investmentTotal).replaceAll('₺', '') + '₺', 
+                style: const TextStyle(color: Color(0xFFFFD700), fontSize: 22, fontWeight: FontWeight.bold)
+              ),
+            ],
+          ),
       ],
     );
   }

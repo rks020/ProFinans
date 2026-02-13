@@ -29,6 +29,7 @@ class _YearlyAnalysisScreenState extends ConsumerState<YearlyAnalysisScreen> {
     // Data Processing
     final monthlyStats = _calculateMonthlyStats(yearTransactions);
     final topExpenseMonth = _findTopMonth(monthlyStats['expense']!);
+    final topInvestmentMonth = _findTopMonth(monthlyStats['investment']!);
     final topGrowthMonth = _findTopGrowthMonth(monthlyStats);
     final topCategory = _findTopCategory(yearTransactions);
 
@@ -82,6 +83,15 @@ class _YearlyAnalysisScreenState extends ConsumerState<YearlyAnalysisScreen> {
                           color: AppTheme.expenseColor,
                         ),
                         const SizedBox(width: 12),
+                        if (topInvestmentMonth.value > 0) ...[
+                          _SummaryCard(
+                            title: 'En Çok Yatırım',
+                            value: '${_getMonthName(topInvestmentMonth.key)}\n${_formatCurrency(topInvestmentMonth.value, currencySymbol)}',
+                            icon: Icons.savings,
+                            color: const Color(0xFFFFD700),
+                          ),
+                          const SizedBox(width: 12),
+                        ],
                         _SummaryCard(
                           title: 'En Yüksek Artan Gelir',
                           value: '${_getMonthName(topGrowthMonth.key)}\n${_formatCurrency(topGrowthMonth.value, currencySymbol)}',
@@ -102,7 +112,7 @@ class _YearlyAnalysisScreenState extends ConsumerState<YearlyAnalysisScreen> {
                   const SizedBox(height: 32),
 
                   // --- Monthly Chart ---
-                  const Text('Aylık Gelir - Gider',
+                  const Text('Aylık Gelir - Gider - Yatırım',
                       style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 16),
                   Container(
@@ -139,11 +149,14 @@ class _YearlyAnalysisScreenState extends ConsumerState<YearlyAnalysisScreen> {
                           final month = index + 1;
                           final income = monthlyStats['income']![month] ?? 0;
                           final expense = monthlyStats['expense']![month] ?? 0;
+                          final investment = monthlyStats['investment']![month] ?? 0;
                           return BarChartGroupData(
                             x: month,
                             barRods: [
                               BarChartRodData(toY: income, color: AppTheme.incomeColor, width: 6),
                               BarChartRodData(toY: expense, color: AppTheme.expenseColor, width: 6),
+                              if (investment > 0)
+                                BarChartRodData(toY: investment, color: const Color(0xFFFFD700), width: 6),
                             ],
                           );
                         }),
@@ -165,7 +178,28 @@ class _YearlyAnalysisScreenState extends ConsumerState<YearlyAnalysisScreen> {
                     ),
                     child: _CategoryPieChart(transactions: yearTransactions, currencySymbol: currencySymbol),
                   ),
-                  const SizedBox(height: 50),
+                  const SizedBox(height: 32),
+
+                  // --- Investment Pie Chart ---
+                   if (monthlyStats['investment']!.isNotEmpty && monthlyStats['investment']!.values.any((v) => v > 0)) ...[
+                    const Text('Kategori Bazlı Yatırım',
+                        style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 16),
+                    Container(
+                      height: 300,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: AppTheme.surfaceColor,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: _CategoryPieChart(
+                        transactions: yearTransactions, 
+                        currencySymbol: currencySymbol, 
+                        type: TransactionType.investment
+                      ),
+                    ),
+                    const SizedBox(height: 50),
+                   ],
                 ],
               ),
             ),
@@ -175,16 +209,19 @@ class _YearlyAnalysisScreenState extends ConsumerState<YearlyAnalysisScreen> {
   Map<String, Map<int, double>> _calculateMonthlyStats(List<Transaction> transactions) {
     final income = <int, double>{};
     final expense = <int, double>{};
+    final investment = <int, double>{};
 
     for (var t in transactions) {
       final month = t.date.month;
       if (t.type == TransactionType.income) {
         income[month] = (income[month] ?? 0) + t.amount;
+      } else if (t.type == TransactionType.investment) {
+        investment[month] = (investment[month] ?? 0) + t.amount;
       } else {
         expense[month] = (expense[month] ?? 0) + t.amount;
       }
     }
-    return {'income': income, 'expense': expense};
+    return {'income': income, 'expense': expense, 'investment': investment};
   }
 
   MapEntry<int, double> _findTopMonth(Map<int, double> stats) {
@@ -200,6 +237,9 @@ class _YearlyAnalysisScreenState extends ConsumerState<YearlyAnalysisScreen> {
     for (int i = 1; i <= 12; i++) {
       final inc = income[i] ?? 0;
       final exp = expense[i] ?? 0;
+      // Investment is considered an asset, so maybe we shouldn't subtract it from 'growth' or 'saving'
+      // But 'Net Income' usually means Income - Expense. Investment is a form of saving.
+      // So Growth = Income - Expense (Investments are part of the growth/saving)
       if (inc > 0 || exp > 0) {
         growth[i] = inc - exp;
       }
@@ -284,8 +324,13 @@ class _SummaryCard extends StatelessWidget {
 class _CategoryPieChart extends StatelessWidget {
   final List<Transaction> transactions;
   final String currencySymbol;
+  final TransactionType type;
 
-  const _CategoryPieChart({required this.transactions, required this.currencySymbol});
+  const _CategoryPieChart({
+    required this.transactions, 
+    required this.currencySymbol,
+    this.type = TransactionType.expense,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -293,7 +338,7 @@ class _CategoryPieChart extends StatelessWidget {
     final categoryColors = <String, int>{};
 
     for (var t in transactions) {
-      if (t.type == TransactionType.expense) {
+      if (t.type == type) {
         categories[t.category] = (categories[t.category] ?? 0) + t.amount;
         categoryColors[t.category] = t.colorCode;
       }

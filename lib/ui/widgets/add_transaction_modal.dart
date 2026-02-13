@@ -85,7 +85,9 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
   Widget build(BuildContext context) {
     final settings = ref.watch(appSettingsProvider);
     final userCategories = ref.watch(categoriesProvider);
-    final themeColor = _type == TransactionType.income ? AppTheme.incomeColor : AppTheme.expenseColor;
+    final themeColor = _type == TransactionType.income 
+      ? AppTheme.incomeColor 
+      : (_type == TransactionType.investment ? const Color(0xFFFFD700) : AppTheme.expenseColor);
     final isEditing = widget.transactionToEdit != null;
 
     return Container(
@@ -131,6 +133,7 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
                   child: Row(children: [
                       _buildTypeToggle(TransactionType.income, 'Gelir', AppTheme.incomeColor),
                       _buildTypeToggle(TransactionType.expense, 'Gider', AppTheme.expenseColor),
+                      _buildTypeToggle(TransactionType.investment, 'Yatırım', const Color(0xFFFFD700)),
                   ]),
                 )),
               ],
@@ -345,8 +348,8 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
                 onTap: _showRecurrencePicker,
               ),
 
-            // Taksit (Sadece Giderse ve Yeni Eklemedeyse)
-            if (_type == TransactionType.expense && _recurrence == RecurrenceRule.none && !isEditing) ...[
+            // Taksit (Sadece Giderse/Yatırımsa ve Yeni Eklemedeyse)
+            if ((_type == TransactionType.expense || _type == TransactionType.investment) && _recurrence == RecurrenceRule.none && !isEditing) ...[
               const SizedBox(height: 12),
               _buildSelectionRow(
                 label: 'Taksit Sayısı',
@@ -656,7 +659,12 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
     final isAmountInvalid = amount <= 0;
 
     if (isTitleEmpty || isAmountInvalid) {
-      final typeText = _type == TransactionType.income ? 'gelir' : 'gider';
+      String typeText;
+      switch (_type) {
+        case TransactionType.income: typeText = 'gelir'; break;
+        case TransactionType.expense: typeText = 'gider'; break;
+        case TransactionType.investment: typeText = 'yatırım'; break;
+      }
       _showError('Lütfen $typeText değerini ve başlığını giriniz');
       return;
     }

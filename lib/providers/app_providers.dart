@@ -228,6 +228,20 @@ Map<String, List<Transaction>> incomeDashboard(Ref ref) {
   return _calculateDashboardData(transactions, selectedDate);
 }
 
+@riverpod
+List<Transaction> investmentTransactions(Ref ref) {
+  return ref.watch(filteredTransactionsProvider)
+      .where((t) => t.type == TransactionType.investment)
+      .toList();
+}
+
+@riverpod
+Map<String, List<Transaction>> investmentDashboard(Ref ref) {
+  final transactions = ref.watch(investmentTransactionsProvider);
+  final selectedDate = ref.watch(selectedDateProvider);
+  return _calculateDashboardData(transactions, selectedDate);
+}
+
 Map<String, List<Transaction>> _calculateDashboardData(List<Transaction> transactions, DateTime selectedDate) {
   final now = DateTime.now();
   final today = DateTime(now.year, now.month, now.day); 

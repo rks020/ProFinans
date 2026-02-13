@@ -115,6 +115,7 @@ Map<String, dynamic> _$TransactionToJson(_Transaction instance) =>
 const _$TransactionTypeEnumMap = {
   TransactionType.income: 'income',
   TransactionType.expense: 'expense',
+  TransactionType.investment: 'investment',
 };
 
 const _$RecurrenceRuleEnumMap = {

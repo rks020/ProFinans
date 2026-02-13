@@ -147,7 +147,7 @@ final class TransactionsNotifierProvider
 }
 
 String _$transactionsNotifierHash() =>
-    r'949e4df62745446d09cd4c525ea6dc63fe3aebac';
+    r'e5d85bcd1a25d2bca2833f67eea9526095faca53';
 
 abstract class _$TransactionsNotifier extends $Notifier<List<Transaction>> {
   List<Transaction> build();
@@ -253,7 +253,7 @@ final class CategoriesNotifierProvider
 }
 
 String _$categoriesNotifierHash() =>
-    r'9e3e1a5f15052e94c769b513901a640851397e21';
+    r'7458b2e7d8869557c3fdd17d78ba1df4c6a3ecf1';
 
 abstract class _$CategoriesNotifier extends $Notifier<List<Category>> {
   List<Category> build();
@@ -514,6 +514,104 @@ final class IncomeDashboardProvider
 }
 
 String _$incomeDashboardHash() => r'd52156fe49d1b9f36d35b6ce507a924dbf581d7a';
+
+@ProviderFor(investmentTransactions)
+final investmentTransactionsProvider = InvestmentTransactionsProvider._();
+
+final class InvestmentTransactionsProvider
+    extends
+        $FunctionalProvider<
+          List<Transaction>,
+          List<Transaction>,
+          List<Transaction>
+        >
+    with $Provider<List<Transaction>> {
+  InvestmentTransactionsProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'investmentTransactionsProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$investmentTransactionsHash();
+
+  @$internal
+  @override
+  $ProviderElement<List<Transaction>> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  List<Transaction> create(Ref ref) {
+    return investmentTransactions(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(List<Transaction> value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<List<Transaction>>(value),
+    );
+  }
+}
+
+String _$investmentTransactionsHash() =>
+    r'6f2fa72bc624d7299aa71010f693e4a8346abf53';
+
+@ProviderFor(investmentDashboard)
+final investmentDashboardProvider = InvestmentDashboardProvider._();
+
+final class InvestmentDashboardProvider
+    extends
+        $FunctionalProvider<
+          Map<String, List<Transaction>>,
+          Map<String, List<Transaction>>,
+          Map<String, List<Transaction>>
+        >
+    with $Provider<Map<String, List<Transaction>>> {
+  InvestmentDashboardProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'investmentDashboardProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$investmentDashboardHash();
+
+  @$internal
+  @override
+  $ProviderElement<Map<String, List<Transaction>>> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  Map<String, List<Transaction>> create(Ref ref) {
+    return investmentDashboard(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(Map<String, List<Transaction>> value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<Map<String, List<Transaction>>>(
+        value,
+      ),
+    );
+  }
+}
+
+String _$investmentDashboardHash() =>
+    r'e58c15e05b2d793e541be8ab66184155f7df2eee';
 
 @ProviderFor(dashboardTransactions)
 final dashboardTransactionsProvider = DashboardTransactionsProvider._();

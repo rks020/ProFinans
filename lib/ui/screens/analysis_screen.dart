@@ -99,8 +99,10 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
   Widget _buildSankeyView(List<Transaction> transactions) {
     double income = 0;
     double expenses = 0;
+    double investments = 0;
     final incomeMap = <String, double>{};
     final expenseMap = <String, double>{};
+    final investmentMap = <String, double>{};
     final colorMap = <String, Color>{};
 
     for (var t in transactions) {
@@ -108,6 +110,9 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
       if (t.type == TransactionType.income) {
         income += t.amount;
         incomeMap[t.category] = (incomeMap[t.category] ?? 0) + t.amount;
+      } else if (t.type == TransactionType.investment) {
+        investments += t.amount;
+        investmentMap[t.category] = (investmentMap[t.category] ?? 0) + t.amount;
       } else {
         expenses += t.amount;
         expenseMap[t.category] = (expenseMap[t.category] ?? 0) + t.amount;
@@ -126,14 +131,22 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
       color: colorMap[e.key] ?? Colors.grey,
     )).toList()..sort((a, b) => b.amount.compareTo(a.amount));
 
+    final investmentBreakdown = investmentMap.entries.map((e) => CategoryVolume(
+      name: e.key,
+      amount: e.value,
+      color: colorMap[e.key] ?? const Color(0xFFFFD700),
+    )).toList()..sort((a, b) => b.amount.compareTo(a.amount));
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SankeyFlowChart(
           income: income,
           expenses: expenses,
+          investments: investments,
           incomeBreakdown: incomeBreakdown,
           expenseBreakdown: expenseBreakdown,
+          investmentBreakdown: investmentBreakdown,
         ),
       ],
     );
@@ -180,7 +193,13 @@ class _TrendChart extends StatelessWidget {
       final monthlyTrans = transactions.where((t) => t.date.year == month.year && t.date.month == month.month);
       final income = monthlyTrans.where((t) => t.type == TransactionType.income).fold(0.0, (sum, t) => sum + t.amount);
       final expense = monthlyTrans.where((t) => t.type == TransactionType.expense).fold(0.0, (sum, t) => sum + t.amount);
-      return {'month': DateFormat('MMM', 'tr_TR').format(month), 'income': income, 'expense': expense};
+      final investment = monthlyTrans.where((t) => t.type == TransactionType.investment).fold(0.0, (sum, t) => sum + t.amount);
+      return {
+        'month': DateFormat('MMM', 'tr_TR').format(month),
+        'income': income,
+        'expense': expense,
+        'investment': investment,
+      };
     }).toList();
 
     // Calculate max Y for scale
@@ -188,8 +207,10 @@ class _TrendChart extends StatelessWidget {
     for (var d in data) {
       final inc = d['income'] as double;
       final exp = d['expense'] as double;
+      final inv = d['investment'] as double;
       if (inc > maxY) maxY = inc;
       if (exp > maxY) maxY = exp;
+      if (inv > maxY) maxY = inv;
     }
     maxY = maxY * 1.2; // Add buffer
     if (maxY == 0) maxY = 1000;
@@ -206,7 +227,7 @@ class _TrendChart extends StatelessWidget {
                 touchTooltipData: BarTouchTooltipData(
                   getTooltipColor: (_) => AppTheme.surfaceColor,
                   getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                    final type = rodIndex == 0 ? 'Gelir' : 'Gider';
+                    final type = rodIndex == 0 ? 'Gelir' : (rodIndex == 1 ? 'Gider' : 'Yatırım');
                     final value = NumberFormat.currency(symbol: '₺', decimalDigits: 0, locale: 'tr_TR').format(rod.toY);
                     return BarTooltipItem(
                       '$type\n$value',
@@ -219,6 +240,7 @@ class _TrendChart extends StatelessWidget {
                 final item = data[index];
                 final income = item['income'] as double;
                 final expense = item['expense'] as double;
+                final investment = item['investment'] as double;
 
                 return BarChartGroupData(
                   x: index,
@@ -233,6 +255,12 @@ class _TrendChart extends StatelessWidget {
                     BarChartRodData(
                       toY: expense,
                       color: AppTheme.expenseColor,
+                      width: 12,
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+                    ),
+                    BarChartRodData(
+                      toY: investment,
+                      color: const Color(0xFFFFD700),
                       width: 12,
                       borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
                     ),
@@ -287,8 +315,10 @@ class _TrendChart extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             _LegendItem(color: AppTheme.incomeColor, label: 'Gelirler'),
-            const SizedBox(width: 24),
+            const SizedBox(width: 16),
             _LegendItem(color: AppTheme.expenseColor, label: 'Giderler'),
+            const SizedBox(width: 16),
+            _LegendItem(color: const Color(0xFFFFD700), label: 'Yatırımlar'),
           ],
         ),
       ],
@@ -356,7 +386,17 @@ class _AuditListModal extends ConsumerWidget {
                         itemBuilder: (context, index) {
                           final t = transactions[index];
                           final isIncome = t.type == TransactionType.income;
+                          final isInvestment = t.type == TransactionType.investment;
                           final format = NumberFormat.currency(symbol: '₺', decimalDigits: 0);
+                          
+                          Color displayColor = isIncome 
+                              ? AppTheme.incomeColor 
+                              : (isInvestment ? const Color(0xFFFFD700) : AppTheme.expenseColor);
+                          
+                          IconData displayIcon = isIncome 
+                              ? Icons.arrow_downward 
+                              : (isInvestment ? Icons.savings : Icons.arrow_upward);
+
                           return Dismissible(
                              key: Key(t.id),
                              direction: DismissDirection.endToStart,
@@ -371,10 +411,10 @@ class _AuditListModal extends ConsumerWidget {
                              },
                              child: ListTile(
                                leading: CircleAvatar(
-                                 backgroundColor: Color(t.colorCode).withOpacity(0.2),
+                                 backgroundColor: displayColor.withOpacity(0.2),
                                  child: Icon(
-                                   isIncome ? Icons.arrow_downward : Icons.arrow_upward,
-                                   color: Color(t.colorCode),
+                                   displayIcon,
+                                   color: displayColor,
                                    size: 20,
                                  ),
                                ),
@@ -386,7 +426,7 @@ class _AuditListModal extends ConsumerWidget {
                                trailing: Text(
                                  '${isIncome ? '+' : '-'}${format.format(t.amount).replaceAll('₺', '')}₺',
                                  style: TextStyle(
-                                   color: isIncome ? AppTheme.incomeColor : AppTheme.expenseColor,
+                                   color: displayColor,
                                    fontWeight: FontWeight.bold,
                                    fontSize: 16,
                                  ),
