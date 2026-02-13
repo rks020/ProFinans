@@ -13,6 +13,7 @@ abstract class AppSettings extends HiveObject with _$AppSettings {
     @HiveField(0) String? activeGroupId,
     @HiveField(1) @Default('TRY') String selectedCurrency,
     @HiveField(2) @Default('dark') String themePreference,
+    @HiveField(3) @Default(false) bool isPrivacyMode,
   }) = _AppSettings;
 
   factory AppSettings.fromJson(Map<String, dynamic> json) => _$AppSettingsFromJson(json);

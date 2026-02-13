@@ -24,6 +24,12 @@ class AppSettingsNotifier extends _$AppSettingsNotifier {
     await ref.read(settingsRepositoryProvider).saveSettings(settings);
     state = settings;
   }
+
+  Future<void> togglePrivacyMode() async {
+    final updated = state.copyWith(isPrivacyMode: !state.isPrivacyMode);
+    await ref.read(settingsRepositoryProvider).saveSettings(updated);
+    state = updated;
+  }
 }
 
 @riverpod

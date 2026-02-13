@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$AppSettings {
 
-@HiveField(0) String? get activeGroupId;@HiveField(1) String get selectedCurrency;@HiveField(2) String get themePreference;
+@HiveField(0) String? get activeGroupId;@HiveField(1) String get selectedCurrency;@HiveField(2) String get themePreference;@HiveField(3) bool get isPrivacyMode;
 /// Create a copy of AppSettings
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $AppSettingsCopyWith<AppSettings> get copyWith => _$AppSettingsCopyWithImpl<AppS
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is AppSettings&&(identical(other.activeGroupId, activeGroupId) || other.activeGroupId == activeGroupId)&&(identical(other.selectedCurrency, selectedCurrency) || other.selectedCurrency == selectedCurrency)&&(identical(other.themePreference, themePreference) || other.themePreference == themePreference));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is AppSettings&&(identical(other.activeGroupId, activeGroupId) || other.activeGroupId == activeGroupId)&&(identical(other.selectedCurrency, selectedCurrency) || other.selectedCurrency == selectedCurrency)&&(identical(other.themePreference, themePreference) || other.themePreference == themePreference)&&(identical(other.isPrivacyMode, isPrivacyMode) || other.isPrivacyMode == isPrivacyMode));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,activeGroupId,selectedCurrency,themePreference);
+int get hashCode => Object.hash(runtimeType,activeGroupId,selectedCurrency,themePreference,isPrivacyMode);
 
 @override
 String toString() {
-  return 'AppSettings(activeGroupId: $activeGroupId, selectedCurrency: $selectedCurrency, themePreference: $themePreference)';
+  return 'AppSettings(activeGroupId: $activeGroupId, selectedCurrency: $selectedCurrency, themePreference: $themePreference, isPrivacyMode: $isPrivacyMode)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $AppSettingsCopyWith<$Res>  {
   factory $AppSettingsCopyWith(AppSettings value, $Res Function(AppSettings) _then) = _$AppSettingsCopyWithImpl;
 @useResult
 $Res call({
-@HiveField(0) String? activeGroupId,@HiveField(1) String selectedCurrency,@HiveField(2) String themePreference
+@HiveField(0) String? activeGroupId,@HiveField(1) String selectedCurrency,@HiveField(2) String themePreference,@HiveField(3) bool isPrivacyMode
 });
 
 
@@ -65,12 +65,13 @@ class _$AppSettingsCopyWithImpl<$Res>
 
 /// Create a copy of AppSettings
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? activeGroupId = freezed,Object? selectedCurrency = null,Object? themePreference = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? activeGroupId = freezed,Object? selectedCurrency = null,Object? themePreference = null,Object? isPrivacyMode = null,}) {
   return _then(_self.copyWith(
 activeGroupId: freezed == activeGroupId ? _self.activeGroupId : activeGroupId // ignore: cast_nullable_to_non_nullable
 as String?,selectedCurrency: null == selectedCurrency ? _self.selectedCurrency : selectedCurrency // ignore: cast_nullable_to_non_nullable
 as String,themePreference: null == themePreference ? _self.themePreference : themePreference // ignore: cast_nullable_to_non_nullable
-as String,
+as String,isPrivacyMode: null == isPrivacyMode ? _self.isPrivacyMode : isPrivacyMode // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 
@@ -155,10 +156,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@HiveField(0)  String? activeGroupId, @HiveField(1)  String selectedCurrency, @HiveField(2)  String themePreference)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@HiveField(0)  String? activeGroupId, @HiveField(1)  String selectedCurrency, @HiveField(2)  String themePreference, @HiveField(3)  bool isPrivacyMode)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _AppSettings() when $default != null:
-return $default(_that.activeGroupId,_that.selectedCurrency,_that.themePreference);case _:
+return $default(_that.activeGroupId,_that.selectedCurrency,_that.themePreference,_that.isPrivacyMode);case _:
   return orElse();
 
 }
@@ -176,10 +177,10 @@ return $default(_that.activeGroupId,_that.selectedCurrency,_that.themePreference
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@HiveField(0)  String? activeGroupId, @HiveField(1)  String selectedCurrency, @HiveField(2)  String themePreference)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@HiveField(0)  String? activeGroupId, @HiveField(1)  String selectedCurrency, @HiveField(2)  String themePreference, @HiveField(3)  bool isPrivacyMode)  $default,) {final _that = this;
 switch (_that) {
 case _AppSettings():
-return $default(_that.activeGroupId,_that.selectedCurrency,_that.themePreference);case _:
+return $default(_that.activeGroupId,_that.selectedCurrency,_that.themePreference,_that.isPrivacyMode);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -196,10 +197,10 @@ return $default(_that.activeGroupId,_that.selectedCurrency,_that.themePreference
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@HiveField(0)  String? activeGroupId, @HiveField(1)  String selectedCurrency, @HiveField(2)  String themePreference)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@HiveField(0)  String? activeGroupId, @HiveField(1)  String selectedCurrency, @HiveField(2)  String themePreference, @HiveField(3)  bool isPrivacyMode)?  $default,) {final _that = this;
 switch (_that) {
 case _AppSettings() when $default != null:
-return $default(_that.activeGroupId,_that.selectedCurrency,_that.themePreference);case _:
+return $default(_that.activeGroupId,_that.selectedCurrency,_that.themePreference,_that.isPrivacyMode);case _:
   return null;
 
 }
@@ -211,12 +212,13 @@ return $default(_that.activeGroupId,_that.selectedCurrency,_that.themePreference
 @JsonSerializable()
 
 class _AppSettings extends AppSettings {
-   _AppSettings({@HiveField(0) this.activeGroupId, @HiveField(1) this.selectedCurrency = 'TRY', @HiveField(2) this.themePreference = 'dark'}): super._();
+   _AppSettings({@HiveField(0) this.activeGroupId, @HiveField(1) this.selectedCurrency = 'TRY', @HiveField(2) this.themePreference = 'dark', @HiveField(3) this.isPrivacyMode = false}): super._();
   factory _AppSettings.fromJson(Map<String, dynamic> json) => _$AppSettingsFromJson(json);
 
 @override@HiveField(0) final  String? activeGroupId;
 @override@JsonKey()@HiveField(1) final  String selectedCurrency;
 @override@JsonKey()@HiveField(2) final  String themePreference;
+@override@JsonKey()@HiveField(3) final  bool isPrivacyMode;
 
 /// Create a copy of AppSettings
 /// with the given fields replaced by the non-null parameter values.
@@ -231,16 +233,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _AppSettings&&(identical(other.activeGroupId, activeGroupId) || other.activeGroupId == activeGroupId)&&(identical(other.selectedCurrency, selectedCurrency) || other.selectedCurrency == selectedCurrency)&&(identical(other.themePreference, themePreference) || other.themePreference == themePreference));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _AppSettings&&(identical(other.activeGroupId, activeGroupId) || other.activeGroupId == activeGroupId)&&(identical(other.selectedCurrency, selectedCurrency) || other.selectedCurrency == selectedCurrency)&&(identical(other.themePreference, themePreference) || other.themePreference == themePreference)&&(identical(other.isPrivacyMode, isPrivacyMode) || other.isPrivacyMode == isPrivacyMode));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,activeGroupId,selectedCurrency,themePreference);
+int get hashCode => Object.hash(runtimeType,activeGroupId,selectedCurrency,themePreference,isPrivacyMode);
 
 @override
 String toString() {
-  return 'AppSettings(activeGroupId: $activeGroupId, selectedCurrency: $selectedCurrency, themePreference: $themePreference)';
+  return 'AppSettings(activeGroupId: $activeGroupId, selectedCurrency: $selectedCurrency, themePreference: $themePreference, isPrivacyMode: $isPrivacyMode)';
 }
 
 
@@ -251,7 +253,7 @@ abstract mixin class _$AppSettingsCopyWith<$Res> implements $AppSettingsCopyWith
   factory _$AppSettingsCopyWith(_AppSettings value, $Res Function(_AppSettings) _then) = __$AppSettingsCopyWithImpl;
 @override @useResult
 $Res call({
-@HiveField(0) String? activeGroupId,@HiveField(1) String selectedCurrency,@HiveField(2) String themePreference
+@HiveField(0) String? activeGroupId,@HiveField(1) String selectedCurrency,@HiveField(2) String themePreference,@HiveField(3) bool isPrivacyMode
 });
 
 
@@ -268,12 +270,13 @@ class __$AppSettingsCopyWithImpl<$Res>
 
 /// Create a copy of AppSettings
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? activeGroupId = freezed,Object? selectedCurrency = null,Object? themePreference = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? activeGroupId = freezed,Object? selectedCurrency = null,Object? themePreference = null,Object? isPrivacyMode = null,}) {
   return _then(_AppSettings(
 activeGroupId: freezed == activeGroupId ? _self.activeGroupId : activeGroupId // ignore: cast_nullable_to_non_nullable
 as String?,selectedCurrency: null == selectedCurrency ? _self.selectedCurrency : selectedCurrency // ignore: cast_nullable_to_non_nullable
 as String,themePreference: null == themePreference ? _self.themePreference : themePreference // ignore: cast_nullable_to_non_nullable
-as String,
+as String,isPrivacyMode: null == isPrivacyMode ? _self.isPrivacyMode : isPrivacyMode // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 

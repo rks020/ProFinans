@@ -8,6 +8,10 @@ class SankeyFlowChart extends StatefulWidget {
   final List<CategoryVolume> incomeBreakdown;
   final List<CategoryVolume> expenseBreakdown;
 
+  final double investments;
+  final List<CategoryVolume> investmentBreakdown;
+  final bool isPrivacyMode;
+
   const SankeyFlowChart({
     super.key,
     required this.income,
@@ -16,10 +20,8 @@ class SankeyFlowChart extends StatefulWidget {
     required this.expenseBreakdown,
     this.investments = 0,
     this.investmentBreakdown = const [],
+    this.isPrivacyMode = false,
   });
-
-  final double investments;
-  final List<CategoryVolume> investmentBreakdown;
 
   @override
   State<SankeyFlowChart> createState() => _SankeyFlowChartState();
@@ -78,6 +80,7 @@ class _SankeyFlowChartState extends State<SankeyFlowChart> with SingleTickerProv
             incomeBreakdown: widget.incomeBreakdown,
             expenseBreakdown: widget.expenseBreakdown,
             investmentBreakdown: widget.investmentBreakdown,
+            isPrivacyMode: widget.isPrivacyMode,
             progress: _animation.value,
           ),
         );
@@ -101,6 +104,7 @@ class FlowPainter extends CustomPainter {
   final List<CategoryVolume> incomeBreakdown;
   final List<CategoryVolume> expenseBreakdown;
   final List<CategoryVolume> investmentBreakdown;
+  final bool isPrivacyMode;
   final double progress;
 
   FlowPainter({
@@ -110,6 +114,7 @@ class FlowPainter extends CustomPainter {
     required this.incomeBreakdown,
     required this.expenseBreakdown,
     required this.investmentBreakdown,
+    required this.isPrivacyMode,
     required this.progress,
   });
 
@@ -141,7 +146,8 @@ class FlowPainter extends CustomPainter {
         Paint()..color = const Color(0xFF0055D4).withOpacity(leftBarProgress)
       );
       // Label for Total Income
-      _drawLabel(canvas, "Toplam Gelir", currencyFormat.format(income), Offset(leftX + nodeWidth, 8 + leftNodeHeight / 2), alignRight: false, opacity: leftBarProgress);
+      final incomeStr = isPrivacyMode ? '***₺' : currencyFormat.format(income);
+      _drawLabel(canvas, "Toplam Gelir", incomeStr, Offset(leftX + nodeWidth, 8 + leftNodeHeight / 2), alignRight: false, opacity: leftBarProgress);
     }
 
     // --- RIGHT NODES (Expenses, Investments, Savings) ---
@@ -169,7 +175,8 @@ class FlowPainter extends CustomPainter {
           RRect.fromRectAndRadius(Rect.fromLTWH(rightX, currentRightY, nodeWidth, drawHeight * rightBarsProgress), const Radius.circular(4)),
           Paint()..color = exp.color.withOpacity(rightBarsProgress)
         );
-        _drawLabel(canvas, exp.name, currencyFormat.format(exp.amount), Offset(rightX - 10, currentRightY + drawHeight / 2), alignRight: true, opacity: rightBarsProgress);
+        final expStr = isPrivacyMode ? '***₺' : currencyFormat.format(exp.amount);
+        _drawLabel(canvas, exp.name, expStr, Offset(rightX - 10, currentRightY + drawHeight / 2), alignRight: true, opacity: rightBarsProgress);
       }
       
       currentRightY += drawHeight + 10;
@@ -197,7 +204,8 @@ class FlowPainter extends CustomPainter {
           RRect.fromRectAndRadius(Rect.fromLTWH(rightX, currentRightY, nodeWidth, drawHeight * rightBarsProgress), const Radius.circular(4)),
           Paint()..color = inv.color.withOpacity(rightBarsProgress)
         );
-        _drawLabel(canvas, inv.name, currencyFormat.format(inv.amount), Offset(rightX - 10, currentRightY + drawHeight / 2), alignRight: true, opacity: rightBarsProgress);
+        final invStr = isPrivacyMode ? '***₺' : currencyFormat.format(inv.amount);
+        _drawLabel(canvas, inv.name, invStr, Offset(rightX - 10, currentRightY + drawHeight / 2), alignRight: true, opacity: rightBarsProgress);
       }
       
       currentRightY += drawHeight + 10;
@@ -226,7 +234,8 @@ class FlowPainter extends CustomPainter {
           RRect.fromRectAndRadius(Rect.fromLTWH(rightX, currentRightY, nodeWidth, drawHeight * rightBarsProgress), const Radius.circular(4)),
           Paint()..color = const Color(0xFF4CAF50).withOpacity(rightBarsProgress)
         );
-        _drawLabel(canvas, "Artan Gelir", currencyFormat.format(savings), Offset(rightX - 10, currentRightY + drawHeight / 2), alignRight: true, opacity: rightBarsProgress);
+        final savingsStr = isPrivacyMode ? '***₺' : currencyFormat.format(savings);
+        _drawLabel(canvas, "Artan Gelir", savingsStr, Offset(rightX - 10, currentRightY + drawHeight / 2), alignRight: true, opacity: rightBarsProgress);
       }
     }
   }

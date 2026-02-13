@@ -24,8 +24,8 @@ class DashboardScreen extends ConsumerWidget {
         title: GroupSelector(groups: groups, activeGroupId: appSettings.activeGroupId),
         actions: [
           IconButton(
-            icon: const Icon(Icons.visibility_outlined), 
-            onPressed: () => _showSoon(context),
+            icon: Icon(appSettings.isPrivacyMode ? Icons.visibility_off_outlined : Icons.visibility_outlined), 
+            onPressed: () => ref.read(appSettingsProvider.notifier).togglePrivacyMode(),
           ),
           IconButton(
             icon: const Icon(Icons.calendar_month_outlined), 
@@ -213,8 +213,11 @@ class _VerticalSummaryCardState extends ConsumerState<VerticalSummaryCard> {
   Widget build(BuildContext context) {
     final amount = widget.transactions.fold(0.0, (sum, t) => sum + t.amount);
     final count = widget.transactions.length;
+    final appSettings = ref.watch(appSettingsProvider);
+    final isPrivacyMode = appSettings.isPrivacyMode;
+    
     final format = NumberFormat.currency(symbol: '₺', decimalDigits: 0);
-    final amountStr = format.format(amount).replaceAll('₺', '') + '₺';
+    final amountStr = isPrivacyMode ? '***₺' : format.format(amount).replaceAll('₺', '') + '₺';
 
     // Grouping logic by title
     final groupedTransactions = <String, List<Transaction>>{};
@@ -319,7 +322,7 @@ class _VerticalSummaryCardState extends ConsumerState<VerticalSummaryCard> {
                             ],
                           ),
                           Text(
-                            format.format(totalAmount).replaceAll('₺', '') + '₺',
+                            isPrivacyMode ? '***₺' : format.format(totalAmount).replaceAll('₺', '') + '₺',
                             style: const TextStyle(color: Colors.white70, fontWeight: FontWeight.bold),
                           ),
                         ],
@@ -342,6 +345,7 @@ class _VerticalSummaryCardState extends ConsumerState<VerticalSummaryCard> {
   Widget _buildTransactionItem(Transaction t) {
     final format = NumberFormat.currency(symbol: '₺', decimalDigits: 0);
     final dateStr = DateFormat('dd MMM', 'tr_TR').format(t.date);
+    final isPrivacyMode = ref.watch(appSettingsProvider).isPrivacyMode;
 
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 4),
@@ -384,7 +388,6 @@ class _VerticalSummaryCardState extends ConsumerState<VerticalSummaryCard> {
           ref.read(transactionsProvider.notifier).deleteTransaction(t.id);
         },
         child: Container(
-// ... (lines 328-384 are the same)
           padding: const EdgeInsets.all(16.0),
           decoration: BoxDecoration(
             color: Colors.white.withOpacity(0.05),
@@ -433,7 +436,7 @@ class _VerticalSummaryCardState extends ConsumerState<VerticalSummaryCard> {
                 ),
               ),
               Text(
-                format.format(t.amount).replaceAll('₺', '') + '₺',
+                isPrivacyMode ? '***₺' : format.format(t.amount).replaceAll('₺', '') + '₺',
                 style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
               ),
             ],
@@ -507,12 +510,14 @@ class _BottomSummary extends ConsumerWidget {
                            (investmentData['delayed']?.fold(0.0, (sum, t) => sum! + t.amount) ?? 0.0) +
                            (investmentData['upcoming']?.fold(0.0, (sum, t) => sum! + t.amount) ?? 0.0);
 
+    final isPrivacyMode = ref.watch(appSettingsProvider).isPrivacyMode;
     final total = delayed + paid + upcoming;
     final remaining = delayed + upcoming;
 
     final format = NumberFormat.currency(symbol: '₺', decimalDigits: 0);
-    final totalStr = format.format(total).replaceAll('₺', '') + '₺';
-    final remainingStr = format.format(remaining).replaceAll('₺', '') + '₺';
+    final totalStr = isPrivacyMode ? '***₺' : format.format(total).replaceAll('₺', '') + '₺';
+    final remainingStr = isPrivacyMode ? '***₺' : format.format(remaining).replaceAll('₺', '') + '₺';
+    final investmentStr = isPrivacyMode ? '***₺' : format.format(investmentTotal).replaceAll('₺', '') + '₺';
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -540,7 +545,7 @@ class _BottomSummary extends ConsumerWidget {
               const Text('Yatırım', style: TextStyle(color: Colors.grey, fontSize: 13)),
               const SizedBox(height: 4),
               Text(
-                format.format(investmentTotal).replaceAll('₺', '') + '₺', 
+                investmentStr, 
                 style: const TextStyle(color: Color(0xFFFFD700), fontSize: 22, fontWeight: FontWeight.bold)
               ),
             ],

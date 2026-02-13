@@ -78,7 +78,7 @@ class _YearlyAnalysisScreenState extends ConsumerState<YearlyAnalysisScreen> {
                       children: [
                         _SummaryCard(
                           title: 'En Çok Harcanan Ay',
-                          value: '${_getMonthName(topExpenseMonth.key)}\n${_formatCurrency(topExpenseMonth.value, currencySymbol)}',
+                          value: '${_getMonthName(topExpenseMonth.key)}\n${settings.isPrivacyMode ? '***₺' : _formatCurrency(topExpenseMonth.value, currencySymbol)}',
                           icon: Icons.calendar_month,
                           color: AppTheme.expenseColor,
                         ),
@@ -86,7 +86,7 @@ class _YearlyAnalysisScreenState extends ConsumerState<YearlyAnalysisScreen> {
                         if (topInvestmentMonth.value > 0) ...[
                           _SummaryCard(
                             title: 'En Çok Yatırım',
-                            value: '${_getMonthName(topInvestmentMonth.key)}\n${_formatCurrency(topInvestmentMonth.value, currencySymbol)}',
+                            value: '${_getMonthName(topInvestmentMonth.key)}\n${settings.isPrivacyMode ? '***₺' : _formatCurrency(topInvestmentMonth.value, currencySymbol)}',
                             icon: Icons.savings,
                             color: const Color(0xFFFFD700),
                           ),
@@ -94,7 +94,7 @@ class _YearlyAnalysisScreenState extends ConsumerState<YearlyAnalysisScreen> {
                         ],
                         _SummaryCard(
                           title: 'En Yüksek Artan Gelir',
-                          value: '${_getMonthName(topGrowthMonth.key)}\n${_formatCurrency(topGrowthMonth.value, currencySymbol)}',
+                          value: '${_getMonthName(topGrowthMonth.key)}\n${settings.isPrivacyMode ? '***₺' : _formatCurrency(topGrowthMonth.value, currencySymbol)}',
                           icon: Icons.trending_up,
                           color: AppTheme.incomeColor,
                         ),
@@ -102,7 +102,7 @@ class _YearlyAnalysisScreenState extends ConsumerState<YearlyAnalysisScreen> {
                         if (topCategory != null)
                           _SummaryCard(
                             title: 'En Çok Harcanan Kategori',
-                            value: '${topCategory.key}\n${_formatCurrency(topCategory.value, currencySymbol)}',
+                            value: '${topCategory.key}\n${settings.isPrivacyMode ? '***₺' : _formatCurrency(topCategory.value, currencySymbol)}',
                             icon: Icons.category,
                             color: Colors.orange,
                           ),
@@ -125,6 +125,22 @@ class _YearlyAnalysisScreenState extends ConsumerState<YearlyAnalysisScreen> {
                     child: BarChart(
                       BarChartData(
                         gridData: const FlGridData(show: false),
+                        barTouchData: BarTouchData(
+                          touchTooltipData: BarTouchTooltipData(
+                            getTooltipColor: (_) => AppTheme.surfaceColor,
+                            getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                              final isPrivacyMode = ref.watch(appSettingsProvider).isPrivacyMode;
+                              final type = rodIndex == 0 ? 'Gelir' : (rodIndex == 1 ? 'Gider' : 'Yatırım');
+                              final value = isPrivacyMode 
+                                  ? '***₺' 
+                                  : NumberFormat.currency(symbol: '₺', decimalDigits: 0, locale: 'tr_TR').format(rod.toY);
+                              return BarTooltipItem(
+                                '$type\n$value',
+                                const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                              );
+                            },
+                          ),
+                        ),
                         titlesData: FlTitlesData(
                           rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
                           topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),

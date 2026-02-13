@@ -137,6 +137,8 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
       color: colorMap[e.key] ?? const Color(0xFFFFD700),
     )).toList()..sort((a, b) => b.amount.compareTo(a.amount));
 
+    final isPrivacyMode = ref.watch(appSettingsProvider).isPrivacyMode;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -147,6 +149,7 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
           incomeBreakdown: incomeBreakdown,
           expenseBreakdown: expenseBreakdown,
           investmentBreakdown: investmentBreakdown,
+          isPrivacyMode: isPrivacyMode,
         ),
       ],
     );
@@ -176,14 +179,17 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
   }
 }
 
-class _TrendChart extends StatelessWidget {
+class _TrendChart extends ConsumerWidget {
   final List<Transaction> transactions;
 
   const _TrendChart({required this.transactions});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     if (transactions.isEmpty) return const Center(child: Text("Veri Yok", style: TextStyle(color: Colors.grey)));
+
+    final appSettings = ref.watch(appSettingsProvider);
+    final isPrivacyMode = appSettings.isPrivacyMode;
 
     final now = DateTime.now();
     // Generate dates for current month + previous 5 months (total 6)
@@ -228,7 +234,9 @@ class _TrendChart extends StatelessWidget {
                   getTooltipColor: (_) => AppTheme.surfaceColor,
                   getTooltipItem: (group, groupIndex, rod, rodIndex) {
                     final type = rodIndex == 0 ? 'Gelir' : (rodIndex == 1 ? 'Gider' : 'Yatırım');
-                    final value = NumberFormat.currency(symbol: '₺', decimalDigits: 0, locale: 'tr_TR').format(rod.toY);
+                    final value = isPrivacyMode 
+                        ? '***₺' 
+                        : NumberFormat.currency(symbol: '₺', decimalDigits: 0, locale: 'tr_TR').format(rod.toY);
                     return BarTooltipItem(
                       '$type\n$value',
                       const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
@@ -289,7 +297,7 @@ class _TrendChart extends StatelessWidget {
                     showTitles: true,
                     reservedSize: 40,
                     getTitlesWidget: (val, meta) {
-                      if (val == 0) return const SizedBox();
+                      if (val == 0 || isPrivacyMode) return const SizedBox();
                       return Text(
                         NumberFormat.compact(locale: 'tr_TR').format(val),
                         style: const TextStyle(color: Colors.grey, fontSize: 10),
@@ -424,7 +432,7 @@ class _AuditListModal extends ConsumerWidget {
                                  style: const TextStyle(color: Colors.grey)
                                ),
                                trailing: Text(
-                                 '${isIncome ? '+' : '-'}${format.format(t.amount).replaceAll('₺', '')}₺',
+                                 '${isIncome ? '+' : '-'}${ref.watch(appSettingsProvider).isPrivacyMode ? '***' : format.format(t.amount).replaceAll('₺', '')}₺',
                                  style: TextStyle(
                                    color: displayColor,
                                    fontWeight: FontWeight.bold,
