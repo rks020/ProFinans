@@ -3,10 +3,12 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:uuid/uuid.dart';
 import '../../providers/app_providers.dart';
 import '../../data/models/app_group.dart';
 import '../theme/app_theme.dart';
+import 'yearly_analysis_screen.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -44,6 +46,18 @@ class SettingsScreen extends ConsumerWidget {
             title: const Text('Yedekle (JSON Export)'),
             subtitle: const Text('Tüm verileri İndirilenler klasörüne kaydet'),
             onTap: () => _exportData(context, ref),
+          ),
+          const Divider(height: 40),
+          _SectionTitle(title: 'Raporlar'),
+          ListTile(
+            leading: const Icon(Icons.analytics, color: AppTheme.futureColor),
+            title: const Text('Yıllık Analiz Raporu'),
+            subtitle: const Text('Gelir, gider ve kategori bazlı yıllık özet'),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const YearlyAnalysisScreen()),
+            ),
+            trailing: const Icon(Icons.chevron_right, color: Colors.grey),
           ),
         ],
       ),
@@ -116,18 +130,21 @@ class SettingsScreen extends ConsumerWidget {
     final jsonString = const JsonEncoder.withIndent('  ').convert(data);
 
     try {
-      Directory? directory;
-      if (Platform.isAndroid) {
-        directory = Directory('/storage/emulated/0/Download');
-      } else {
-        directory = await getDownloadsDirectory();
-      }
+      final directory = await getTemporaryDirectory();
+      final fileName = 'profinans_backup_${DateTime.now().millisecondsSinceEpoch}.json';
+      final file = File('${directory.path}/$fileName');
+      
+      await file.writeAsString(jsonString);
+      
+      final result = await Share.shareXFiles(
+        [XFile(file.path)],
+        subject: 'ProFinans Yedek',
+        text: 'ProFinans uygulama yedeği ($fileName)',
+      );
 
-      if (directory != null) {
-        final file = File('${directory.path}/profinans_backup_${DateTime.now().millisecondsSinceEpoch}.json');
-        await file.writeAsString(jsonString);
+      if (result.status == ShareResultStatus.success) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Yedeklendi: ${file.path}')),
+          const SnackBar(content: Text('Yedek başarıyla paylaşıldı/kaydedildi')),
         );
       }
     } catch (e) {

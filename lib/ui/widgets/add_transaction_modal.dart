@@ -137,20 +137,36 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
             ),
             const SizedBox(height: 20),
 
-            // Tutar
-            TextField(
-              controller: _amountController,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold, color: Colors.white),
-              decoration: InputDecoration(
-                hintText: '0.00',
-                hintStyle: TextStyle(color: Colors.grey.withOpacity(0.5)),
-                suffixText: settings.selectedCurrency,
-                suffixStyle: const TextStyle(fontSize: 20, color: Colors.grey),
-                border: InputBorder.none,
+            // Taksit (Sadece Giderse ve Yeni Eklemedeyse)
+            // Tutar Alanı - Currency Badge her zaman görünür olacak
+            // Tutar Alanı - Currency Badge her zaman görünür olacak
+            Center(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
+                children: [
+                  IntrinsicWidth(
+                    child: TextField(
+                      controller: _amountController,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold, color: Colors.white),
+                      decoration: InputDecoration(
+                        hintText: '0.00',
+                        hintStyle: TextStyle(color: Colors.grey.withOpacity(0.5)),
+                        border: InputBorder.none,
+                      ),
+                      textAlign: TextAlign.center,
+                      autofocus: !isEditing,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    settings.selectedCurrency,
+                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.grey),
+                  ),
+                ],
               ),
-              textAlign: TextAlign.center,
-              autofocus: !isEditing,
             ),
             
             // İşlem Adı
@@ -634,15 +650,14 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
       return;
     }
 
-    if (_titleController.text.trim().isEmpty) {
-      _showError('Lütfen bir işlem başlığı girin');
-      return;
-    }
-    
     final cleanAmount = _amountController.text.replaceAll(',', '.');
     final amount = double.tryParse(cleanAmount) ?? 0;
-    if (amount <= 0) {
-      _showError('Lütfen geçerli bir tutar girin');
+    final isTitleEmpty = _titleController.text.trim().isEmpty;
+    final isAmountInvalid = amount <= 0;
+
+    if (isTitleEmpty || isAmountInvalid) {
+      final typeText = _type == TransactionType.income ? 'gelir' : 'gider';
+      _showError('Lütfen $typeText değerini ve başlığını giriniz');
       return;
     }
 
@@ -828,12 +843,28 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
   }
 
   void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: AppTheme.expenseColor,
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 2),
+    // Klavye açıksa kapatalım ki dialog düzgün görünsün
+    FocusScope.of(context).unfocus();
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppTheme.surfaceColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.error_outline, color: AppTheme.expenseColor),
+            SizedBox(width: 12),
+            Text('Hata', style: TextStyle(color: Colors.white)),
+          ],
+        ),
+        content: Text(message, style: const TextStyle(color: Colors.white)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Tamam', style: TextStyle(color: AppTheme.futureColor)),
+          ),
+        ],
       ),
     );
   }
