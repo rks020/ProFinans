@@ -147,7 +147,7 @@ final class TransactionsNotifierProvider
 }
 
 String _$transactionsNotifierHash() =>
-    r'0a39201dc8263a38c5aaa1dd722e4816a2c6e3fe';
+    r'949e4df62745446d09cd4c525ea6dc63fe3aebac';
 
 abstract class _$TransactionsNotifier extends $Notifier<List<Transaction>> {
   List<Transaction> build();
@@ -160,6 +160,112 @@ abstract class _$TransactionsNotifier extends $Notifier<List<Transaction>> {
             as $ClassProviderElement<
               AnyNotifier<List<Transaction>, List<Transaction>>,
               List<Transaction>,
+              Object?,
+              Object?
+            >;
+    element.handleCreate(ref, build);
+  }
+}
+
+@ProviderFor(SelectedDateNotifier)
+final selectedDateProvider = SelectedDateNotifierProvider._();
+
+final class SelectedDateNotifierProvider
+    extends $NotifierProvider<SelectedDateNotifier, DateTime> {
+  SelectedDateNotifierProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'selectedDateProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$selectedDateNotifierHash();
+
+  @$internal
+  @override
+  SelectedDateNotifier create() => SelectedDateNotifier();
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(DateTime value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<DateTime>(value),
+    );
+  }
+}
+
+String _$selectedDateNotifierHash() =>
+    r'd9b1a367150700fff0150cecd7e3f556a10a3667';
+
+abstract class _$SelectedDateNotifier extends $Notifier<DateTime> {
+  DateTime build();
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final ref = this.ref as $Ref<DateTime, DateTime>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<DateTime, DateTime>,
+              DateTime,
+              Object?,
+              Object?
+            >;
+    element.handleCreate(ref, build);
+  }
+}
+
+@ProviderFor(CategoriesNotifier)
+final categoriesProvider = CategoriesNotifierProvider._();
+
+final class CategoriesNotifierProvider
+    extends $NotifierProvider<CategoriesNotifier, List<Category>> {
+  CategoriesNotifierProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'categoriesProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$categoriesNotifierHash();
+
+  @$internal
+  @override
+  CategoriesNotifier create() => CategoriesNotifier();
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(List<Category> value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<List<Category>>(value),
+    );
+  }
+}
+
+String _$categoriesNotifierHash() =>
+    r'9e3e1a5f15052e94c769b513901a640851397e21';
+
+abstract class _$CategoriesNotifier extends $Notifier<List<Category>> {
+  List<Category> build();
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final ref = this.ref as $Ref<List<Category>, List<Category>>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<List<Category>, List<Category>>,
+              List<Category>,
               Object?,
               Object?
             >;
@@ -213,7 +319,7 @@ final class FilteredTransactionsProvider
 }
 
 String _$filteredTransactionsHash() =>
-    r'5c0b667090570a326827ea4df9ca9a7962e46de2';
+    r'fc8eaa7042b48167c6fee03b543ea4368d2c7c09';
 
 @ProviderFor(expenseTransactions)
 final expenseTransactionsProvider = ExpenseTransactionsProvider._();
@@ -358,7 +464,7 @@ final class ExpenseDashboardProvider
   }
 }
 
-String _$expenseDashboardHash() => r'5b3e45e20aee67240aa3e684b8b91ebf21214d6a';
+String _$expenseDashboardHash() => r'403637d5852c0239d65ee82bd71d95ab9ad4e108';
 
 @ProviderFor(incomeDashboard)
 final incomeDashboardProvider = IncomeDashboardProvider._();
@@ -407,7 +513,7 @@ final class IncomeDashboardProvider
   }
 }
 
-String _$incomeDashboardHash() => r'760bff3ef91881764d4679467caf7bc4ef7a3f35';
+String _$incomeDashboardHash() => r'd52156fe49d1b9f36d35b6ce507a924dbf581d7a';
 
 @ProviderFor(dashboardTransactions)
 final dashboardTransactionsProvider = DashboardTransactionsProvider._();
@@ -457,4 +563,4 @@ final class DashboardTransactionsProvider
 }
 
 String _$dashboardTransactionsHash() =>
-    r'67e9600575019e86b796f7a8f0772d4ad3773827';
+    r'c817c47f1432012e9e46544f16aca45edaea215c';

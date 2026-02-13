@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/app_providers.dart';
 import '../../data/models/transaction.dart';
+import '../../data/models/enums.dart'; // TransactionType için
 import '../theme/app_theme.dart';
 import '../widgets/add_transaction_modal.dart';
+import '../widgets/date_selector.dart';
 import 'dashboard_screen.dart'; // Reuse some widgets
 
 class IncomeScreen extends ConsumerWidget {
@@ -36,7 +38,10 @@ class IncomeScreen extends ConsumerWidget {
                   context: context,
                   isScrollControlled: true,
                   backgroundColor: Colors.transparent,
-                  builder: (context) => const AddTransactionModal(),
+                  builder: (context) => AddTransactionModal(
+                    initialDate: ref.read(selectedDateProvider), // Tarih bilgisini de ekleyelim
+                    initialType: TransactionType.income,
+                  ),
                 );
               },
             ),

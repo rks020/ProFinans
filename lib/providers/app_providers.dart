@@ -3,6 +3,7 @@ import '../data/models/app_settings.dart';
 import '../data/models/app_group.dart';
 import '../data/models/transaction.dart';
 import '../data/models/enums.dart';
+import '../data/models/category.dart';
 import 'repository_providers.dart';
 
 part 'app_providers.g.dart';
@@ -75,11 +76,109 @@ class TransactionsNotifier extends _$TransactionsNotifier {
     state = state.where((t) => t.id != id).toList();
   }
 
+  Future<void> deleteBulkTransactions(Transaction template) async {
+    // Aynı isimli, aynı gruptaki ve aynı tipteki tüm işlemleri bul (Tekrarlayanlar için)
+    final toDelete = state.where((t) => 
+      t.title == template.title && 
+      t.groupId == template.groupId && 
+      t.type == template.type &&
+      t.date.year == template.date.year // Sadece aynı yıla ait olanları sil
+    ).toList();
+    
+    for (final t in toDelete) {
+      await ref.read(transactionsRepositoryProvider).deleteTransaction(t.id);
+    }
+    
+    final deleteIds = toDelete.map((t) => t.id).toSet();
+    state = state.where((t) => !deleteIds.contains(t.id)).toList();
+  }
+
   Future<void> togglePaid(String id) async {
     final transaction = state.firstWhere((t) => t.id == id);
     final updated = transaction.copyWith(isPaid: !transaction.isPaid);
     await ref.read(transactionsRepositoryProvider).saveTransaction(updated);
     state = [for (final t in state) if (t.id == id) updated else t];
+  }
+
+  Future<void> updateCategoryColor(String categoryName, int newColorCode) async {
+    // 1. Etkilenen işlemleri bul
+    final transactionsToUpdate = state.where((t) => t.category == categoryName).toList();
+    
+    if (transactionsToUpdate.isEmpty) return;
+
+    // 2. Renkleri güncelle
+    final updatedTransactions = transactionsToUpdate.map((t) {
+      return t.copyWith(colorCode: newColorCode);
+    }).toList();
+
+    // 3. Veritabanına toplu kaydet
+    await ref.read(transactionsRepositoryProvider).saveTransactions(updatedTransactions);
+
+    // 4. State'i güncelle
+    state = state.map((t) {
+      if (t.category == categoryName) {
+        return t.copyWith(colorCode: newColorCode);
+      }
+      return t;
+    }).toList();
+  }
+}
+
+@riverpod
+class SelectedDateNotifier extends _$SelectedDateNotifier {
+  @override
+  DateTime build() {
+    final now = DateTime.now();
+    return DateTime(now.year, now.month);
+  }
+
+  void nextMonth() {
+    state = DateTime(state.year, state.month + 1);
+  }
+
+  void previousMonth() {
+    state = DateTime(state.year, state.month - 1);
+  }
+
+  void setDate(DateTime date) {
+    state = DateTime(date.year, date.month);
+  }
+}
+
+@riverpod
+class CategoriesNotifier extends _$CategoriesNotifier {
+  @override
+  List<Category> build() {
+    final repo = ref.watch(categoriesRepositoryProvider);
+    final categories = repo.getAllCategories();
+    
+    if (categories.isEmpty) {
+      final defaults = [
+        Category(name: 'Market', colorCode: 0xFFFB8C00), // Hex: Orange
+        Category(name: 'Kira', colorCode: 0xFF8E24AA),  // Hex: Purple
+        Category(name: 'Fatura', colorCode: 0xFFE53935), // Hex: Red
+        Category(name: 'Maaş', colorCode: 0xFF43A047),  // Hex: Green
+        Category(name: 'Genel', colorCode: 0xFF1E88E5),  // Hex: Blue
+      ];
+      repo.saveCategories(defaults);
+      return defaults;
+    }
+    return categories;
+  }
+
+  Future<void> addCategory(Category category) async {
+    await ref.read(categoriesRepositoryProvider).saveCategory(category);
+    state = [...state, category];
+  }
+
+  Future<void> updateCategory(Category category) async {
+    // Hive'da güncellemek için (Key ile bulup save yapmak gerekebilir veya direkt save)
+    // HiveObject olduğu için .save() çağrılabilir ama burada yeni nesne geliyor olabilir.
+    // Repository üzerinden güncelleme yapmak en doğrusu.
+    await ref.read(categoriesRepositoryProvider).saveCategory(category);
+    
+    // State'i güncelle
+    state = state.map((c) => c.name == category.name ? category : c).toList();
   }
 }
 
@@ -87,10 +186,18 @@ class TransactionsNotifier extends _$TransactionsNotifier {
 List<Transaction> filteredTransactions(Ref ref) {
   final settings = ref.watch(appSettingsProvider);
   final transactions = ref.watch(transactionsProvider);
+  final selectedDate = ref.watch(selectedDateProvider);
   
   if (settings.activeGroupId == null) return [];
   
-  return transactions.where((t) => t.groupId == settings.activeGroupId).toList();
+  // Basic filtering by group
+  final groupTransactions = transactions.where((t) => t.groupId == settings.activeGroupId).toList();
+  
+  // Filter by selected year and month
+  return groupTransactions.where((t) => 
+    t.date.year == selectedDate.year && 
+    t.date.month == selectedDate.month
+  ).toList();
 }
 
 @riverpod
@@ -110,45 +217,45 @@ List<Transaction> incomeTransactions(Ref ref) {
 @riverpod
 Map<String, List<Transaction>> expenseDashboard(Ref ref) {
   final transactions = ref.watch(expenseTransactionsProvider);
-  return _calculateDashboardData(transactions);
+  final selectedDate = ref.watch(selectedDateProvider);
+  return _calculateDashboardData(transactions, selectedDate);
 }
 
 @riverpod
 Map<String, List<Transaction>> incomeDashboard(Ref ref) {
   final transactions = ref.watch(incomeTransactionsProvider);
-  return _calculateDashboardData(transactions);
+  final selectedDate = ref.watch(selectedDateProvider);
+  return _calculateDashboardData(transactions, selectedDate);
 }
 
-Map<String, List<Transaction>> _calculateDashboardData(List<Transaction> transactions) {
+Map<String, List<Transaction>> _calculateDashboardData(List<Transaction> transactions, DateTime selectedDate) {
   final now = DateTime.now();
-  // Saat farkını yoksaymak için bugünün başlangıcı (00:00:00)
   final today = DateTime(now.year, now.month, now.day); 
   
-  // 1. Gecikenler: Bugünden önce olanlar VE ödenmemiş olanlar
+  // 1. Gecikenler: Bugünden önce olanlar VE ödenmemiş olanlar (Tüm zamanlar olabilir ama seçili grup içinde)
+  // NOT: Gecikenler genellikle sadece "seçili ay" ile sınırlı değildir, ödenene kadar orada durur.
+  // Ancak kullanıcı sadece seçili ayın gecikenlerini görmek istiyorsa aşağıdaki mantık geçerlidir.
+  // Mevcut yapıda 'transactions' zaten seçili ay ile filtrelenmiş durumda (filteredTransactionsProvider'dan geliyor).
+  
   final delayed = transactions.where((t) => 
     t.date.isBefore(today) && 
     !t.isPaid
   ).toList();
 
-  // 2. Ödenenler: Bu ay içinde olanlar VE ödenmiş olanlar
+  // 2. Ödenenler: Seçili ay içinde olanlar VE ödenmiş olanlar
   final paid = transactions.where((t) => 
-    t.date.year == now.year && 
-    t.date.month == now.month && 
     t.isPaid
   ).toList();
 
-  // 3. Gelecek: Bugün ve sonrası, bu ay ve yıl içinde olanlar VE ÖDENMEMİŞ olanlar
+  // 3. Gelecek: Bugün ve sonrası, seçili ay içinde olanlar VE ÖDENMEMİŞ olanlar
   final upcoming = transactions.where((t) => 
     (t.date.isAfter(today) || t.date.isAtSameMomentAs(today)) && 
-    t.date.year == now.year && 
-    t.date.month == now.month && 
     !t.isPaid
   ).toList();
   
-  // Sıralama işlemleri (İsteğe bağlı, görsel düzgünlük için)
-  delayed.sort((a, b) => a.date.compareTo(b.date)); // Eskiden yeniye
-  upcoming.sort((a, b) => a.date.compareTo(b.date)); // Yakından uzağa
-  paid.sort((a, b) => b.date.compareTo(a.date));     // Yeniden eskiye
+  delayed.sort((a, b) => a.date.compareTo(b.date));
+  upcoming.sort((a, b) => a.date.compareTo(b.date));
+  paid.sort((a, b) => b.date.compareTo(a.date));
 
   return {
     'delayed': delayed,
@@ -160,5 +267,6 @@ Map<String, List<Transaction>> _calculateDashboardData(List<Transaction> transac
 @riverpod
 Map<String, List<Transaction>> dashboardTransactions(Ref ref) {
   final transactions = ref.watch(filteredTransactionsProvider);
-  return _calculateDashboardData(transactions);
+  final selectedDate = ref.watch(selectedDateProvider);
+  return _calculateDashboardData(transactions, selectedDate);
 }

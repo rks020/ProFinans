@@ -5,6 +5,7 @@
 import 'package:hive_ce/hive_ce.dart';
 import 'package:profinans/data/models/app_group.dart';
 import 'package:profinans/data/models/app_settings.dart';
+import 'package:profinans/data/models/category.dart';
 import 'package:profinans/data/models/enums.dart';
 import 'package:profinans/data/models/transaction.dart';
 
@@ -12,6 +13,7 @@ extension HiveRegistrar on HiveInterface {
   void registerAdapters() {
     registerAdapter(AppGroupAdapter());
     registerAdapter(AppSettingsAdapter());
+    registerAdapter(CategoryAdapter());
     registerAdapter(RecurrenceRuleAdapter());
     registerAdapter(TransactionAdapter());
     registerAdapter(TransactionTypeAdapter());
@@ -22,6 +24,7 @@ extension IsolatedHiveRegistrar on IsolatedHiveInterface {
   void registerAdapters() {
     registerAdapter(AppGroupAdapter());
     registerAdapter(AppSettingsAdapter());
+    registerAdapter(CategoryAdapter());
     registerAdapter(RecurrenceRuleAdapter());
     registerAdapter(TransactionAdapter());
     registerAdapter(TransactionTypeAdapter());

@@ -4,8 +4,10 @@ import 'package:intl/intl.dart';
 import '../../providers/app_providers.dart';
 import '../../data/models/app_group.dart';
 import '../../data/models/transaction.dart';
+import '../../data/models/enums.dart'; // TransactionType için
 import '../theme/app_theme.dart';
 import '../widgets/add_transaction_modal.dart';
+import '../widgets/date_selector.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -33,12 +35,15 @@ class DashboardScreen extends ConsumerWidget {
             child: IconButton(
               icon: const Icon(Icons.add_circle, color: AppTheme.futureColor, size: 32),
               onPressed: () {
-                showModalBottomSheet(
-                  context: context,
-                  isScrollControlled: true,
-                  backgroundColor: Colors.transparent,
-                  builder: (context) => const AddTransactionModal(),
-                );
+                  showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    backgroundColor: Colors.transparent,
+                    builder: (context) => AddTransactionModal(
+                      initialDate: ref.read(selectedDateProvider),
+                      initialType: TransactionType.expense,
+                    ),
+                  );
               },
             ),
           ),
@@ -93,33 +98,6 @@ class GroupSelector extends ConsumerWidget {
         children: [
           Text(activeGroup.name, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
           const Icon(Icons.keyboard_arrow_down),
-        ],
-      ),
-    );
-  }
-}
-
-class DateSelector extends StatelessWidget {
-  const DateSelector();
-
-  @override
-  Widget build(BuildContext context) {
-    // Hardcoded for UI match
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 8.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          TextButton(onPressed: () {}, child: const Text('< Oca', style: TextStyle(color: Colors.grey))),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            decoration: BoxDecoration(
-              color: const Color(0xFF0D47A1),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: const Text('Şub 2026', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-          ),
-          TextButton(onPressed: () {}, child: const Text('Mar >', style: TextStyle(color: Colors.grey))),
         ],
       ),
     );
@@ -344,13 +322,20 @@ class _VerticalSummaryCardState extends ConsumerState<VerticalSummaryCard> {
             _openEditModal(context, t);
             return false;
           } else {
-            return await _showDeleteConfirmation(context);
+            final result = await _showDeleteConfirmation(context);
+            if (result == 'bulk') {
+              ref.read(transactionsProvider.notifier).deleteBulkTransactions(t);
+              return false; // Don't let dismissible handle it normally
+            }
+            return result == 'single';
           }
         },
         onDismissed: (_) {
+          // Bu sadece 'single' onaylandığında çalışır
           ref.read(transactionsProvider.notifier).deleteTransaction(t.id);
         },
         child: Container(
+// ... (lines 328-384 are the same)
           padding: const EdgeInsets.all(16.0),
           decoration: BoxDecoration(
             color: Colors.white.withOpacity(0.05),
@@ -359,6 +344,16 @@ class _VerticalSummaryCardState extends ConsumerState<VerticalSummaryCard> {
           ),
           child: Row(
             children: [
+              // Kategori Renk İndikatörü
+              Container(
+                width: 4,
+                height: 24,
+                decoration: BoxDecoration(
+                  color: Color(t.colorCode),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(width: 12),
               GestureDetector(
                 onTap: () => ref.read(transactionsProvider.notifier).togglePaid(t.id),
                 child: Container(
@@ -399,27 +394,43 @@ class _VerticalSummaryCardState extends ConsumerState<VerticalSummaryCard> {
     );
   }
 
-  Future<bool> _showDeleteConfirmation(BuildContext context) async {
-    return await showDialog(
+  Future<String?> _showDeleteConfirmation(BuildContext context) async {
+    return await showDialog<String>(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
           backgroundColor: const Color(0xFF151A25),
-          title: const Text("Silinsin mi?", style: TextStyle(color: Colors.white)),
-          content: const Text("Bu işlem geri alınamaz.", style: TextStyle(color: Colors.grey)),
-          actions: <Widget>[
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Text("İşlemi Sil", style: TextStyle(color: Colors.white)),
+          content: const Text(
+            "Bu işlemi silmek istediğinize emin misiniz?", 
+            style: TextStyle(color: Colors.grey)
+          ),
+          actions: [
             TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text("Vazgeç", style: TextStyle(color: Colors.white)),
+              onPressed: () => Navigator.of(context).pop(null),
+              child: const Text("Vazgeç", style: TextStyle(color: Colors.grey)),
             ),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: const Text("SİL", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop('single'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white12,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text("Sadece bu ay"),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop('bulk'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.expenseColor,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text("Tüm aylar (Bu yıl)"),
             ),
           ],
         );
       },
-    ) ?? false;
+    );
   }
 
   void _openEditModal(BuildContext context, Transaction transaction) {

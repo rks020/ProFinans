@@ -4,14 +4,19 @@ import 'package:uuid/uuid.dart';
 import 'package:intl/intl.dart';
 import '../../data/models/transaction.dart';
 import '../../data/models/enums.dart';
+import '../../data/models/category.dart' as model;
 import '../../providers/app_providers.dart';
 import '../theme/app_theme.dart';
 
 class AddTransactionModal extends ConsumerStatefulWidget {
   // Düzenleme için gerekli parametre
   final Transaction? transactionToEdit;
+  // Varsayılan başlangıç tarihi (Opsiyonel)
+  final DateTime? initialDate;
+  // Varsayılan işlem tipi (Opsiyonel)
+  final TransactionType? initialType;
 
-  const AddTransactionModal({super.key, this.transactionToEdit});
+  const AddTransactionModal({super.key, this.transactionToEdit, this.initialDate, this.initialType});
 
   @override
   ConsumerState<AddTransactionModal> createState() => _AddTransactionModalState();
@@ -25,18 +30,12 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
   // Varsayılan değerler
   RecurrenceRule _recurrence = RecurrenceRule.none;
   DateTime _selectedDate = DateTime.now();
-  
   int? _installments;
+
+  bool _isEndDateEnabled = false;
+  DateTime _endDate = DateTime.now();
   String _selectedCategory = 'Genel';
   Color _selectedColor = Colors.blue;
-
-  final List<Map<String, dynamic>> _categories = [
-    {'name': 'Market', 'color': Colors.orange},
-    {'name': 'Kira', 'color': Colors.purple},
-    {'name': 'Fatura', 'color': Colors.red},
-    {'name': 'Maaş', 'color': Colors.green},
-    {'name': 'Genel', 'color': Colors.blue},
-  ];
 
   @override
   void initState() {
@@ -52,8 +51,28 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
       _recurrence = t.recurrenceRule;
       _installments = t.installmentTotal;
       _selectedDate = t.date;
+    } else {
+      // YENİ EKLEME: Varsayılan tip
+      if (widget.initialType != null) {
+        _type = widget.initialType!;
+      }
+      
+      // YENİ EKLEME: Varsayılan tarih mantığı
+      if (widget.initialDate != null) {
+        final now = DateTime.now();
+        // Eğer gelen tarih bu ay ise, bugünü seç (saat farkı olmaksızın)
+        if (widget.initialDate!.year == now.year && widget.initialDate!.month == now.month) {
+          _selectedDate = now;
+        } else {
+          // Farklı bir ay ise, o ayın 1'ini (veya gelen tarihi) kullan
+          _selectedDate = widget.initialDate!;
+        }
+      }
+      _endDate = _selectedDate; // Bitiş tarihini de eşitle
     }
   }
+
+
 
   @override
   void dispose() {
@@ -65,6 +84,7 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
   @override
   Widget build(BuildContext context) {
     final settings = ref.watch(appSettingsProvider);
+    final userCategories = ref.watch(categoriesProvider);
     final themeColor = _type == TransactionType.income ? AppTheme.incomeColor : AppTheme.expenseColor;
     final isEditing = widget.transactionToEdit != null;
 
@@ -149,9 +169,9 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
             ),
             const SizedBox(height: 20),
 
-            // Tarih Seçici
+            // Tarih Seçici (Başlangıç)
             _buildSelectionRow(
-              label: 'Tarih',
+              label: 'Başlangıç Tarihi',
               value: DateFormat('d MMM yyyy', 'tr_TR').format(_selectedDate),
               icon: Icons.calendar_today,
               onTap: () async {
@@ -162,35 +182,136 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
                   lastDate: DateTime(2030),
                   builder: (context, child) => Theme(data: AppTheme.darkTheme, child: child!),
                 );
-                if (picked != null) setState(() => _selectedDate = picked);
+                if (picked != null) {
+                  setState(() {
+                    _selectedDate = picked;
+                    if (_endDate.isBefore(_selectedDate)) {
+                      _endDate = _selectedDate;
+                    }
+                  });
+                }
               },
             ),
             const SizedBox(height: 12),
 
-            // Kategori Listesi
-            const Text('Kategori', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w600)),
+            // Sonlu Ödeme Switch
+            if (!isEditing) 
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(color: AppTheme.surfaceColor, borderRadius: BorderRadius.circular(16)),
+                child: Row(
+                  children: [
+                    const Icon(Icons.access_time, size: 20, color: Colors.grey),
+                    const SizedBox(width: 12),
+                    const Text('Sonlu Ödeme', style: TextStyle(color: Colors.white)),
+                    const Spacer(),
+                    Switch(
+                      value: _isEndDateEnabled,
+                      onChanged: (val) => setState(() => _isEndDateEnabled = val),
+                      activeColor: AppTheme.futureColor,
+                    ),
+                  ],
+                ),
+              ),
+            if (_isEndDateEnabled && !isEditing) ...[
+              const SizedBox(height: 12),
+              _buildSelectionRow(
+                label: 'Bitiş Tarihi',
+                value: DateFormat('d MMM yyyy', 'tr_TR').format(_endDate),
+                icon: Icons.calendar_month,
+                onTap: () async {
+                  final picked = await showDatePicker(
+                    context: context,
+                    initialDate: _endDate,
+                    firstDate: _selectedDate,
+                    lastDate: DateTime(2030),
+                    builder: (context, child) => Theme(data: AppTheme.darkTheme, child: child!),
+                  );
+                  if (picked != null) setState(() => _endDate = picked);
+                },
+              ),
+              const SizedBox(height: 12),
+              _buildSelectionRow(
+                label: 'Taksit Sayısı',
+                value: '${_calculateIterations(_selectedDate, _endDate, _recurrence)}',
+                icon: Icons.list_alt,
+                onTap: () {}, // Salt okunur
+              ),
+              Padding(
+                padding: const EdgeInsets.only(left: 48, top: 4),
+                child: const Text('Bitiş tarihiyle senkronizedir', style: TextStyle(color: Colors.grey, fontSize: 11)),
+              ),
+            ],
             const SizedBox(height: 12),
-            SizedBox(
-              height: 45,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                children: _categories.map((cat) {
-                  final isSelected = _selectedCategory == cat['name'];
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 12.0),
-                    child: GestureDetector(
-                      onTap: () => setState(() {
-                        _selectedCategory = cat['name'];
-                        _selectedColor = cat['color'];
-                      }),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                        decoration: BoxDecoration(
-                          color: isSelected ? cat['color'].withOpacity(0.2) : AppTheme.surfaceColor,
-                          borderRadius: BorderRadius.circular(12),
-                          border: isSelected ? Border.all(color: cat['color'], width: 1.5) : null,
-                        ),
-                        child: Text(cat['name'], style: TextStyle(color: isSelected ? cat['color'] : Colors.white70)),
+
+            // Kategori Listesi
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Kategori', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w600)),
+                TextButton.icon(
+                  onPressed: _showAddCategoryDialog,
+                  icon: const Icon(Icons.add_circle_outline, size: 18, color: AppTheme.futureColor),
+                  label: const Text('Ekle', style: TextStyle(color: AppTheme.futureColor, fontSize: 13)),
+                  style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                alignment: WrapAlignment.start,
+                children: userCategories.map((cat) {
+                  final isSelected = _selectedCategory == cat.name;
+                  final catColor = Color(cat.colorCode);
+                  return GestureDetector(
+                    onTap: () {
+                      if (isSelected) {
+                        _showEditCategoryDialog(cat);
+                      } else {
+                        setState(() {
+                          _selectedCategory = cat.name;
+                          _selectedColor = catColor;
+                        });
+                      }
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: AppTheme.surfaceColor,
+                        borderRadius: BorderRadius.circular(20),
+                        border: isSelected ? Border.all(color: catColor, width: 1) : Border.all(color: Colors.white10, width: 1),
+                        boxShadow: isSelected ? [
+                          BoxShadow(color: catColor.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 2))
+                        ] : null,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 10,
+                            height: 10,
+                            decoration: BoxDecoration(
+                              color: catColor,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(color: catColor.withOpacity(0.5), blurRadius: 4, spreadRadius: 1)
+                              ]
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            cat.name, 
+                            style: TextStyle(
+                              color: isSelected ? Colors.white : Colors.grey.shade300,
+                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal
+                            )
+                          ),
+                        ],
                       ),
                     ),
                   );
@@ -230,6 +351,170 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
               ),
               child: Text(isEditing ? 'Güncelle' : 'Kaydet', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             ),
+            const SizedBox(height: 12),
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.grey,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+              ),
+              child: const Text('İptal', style: TextStyle(fontSize: 16)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showAddCategoryDialog() {
+    String newCatName = '';
+    Color selectedColor = Colors.blue;
+    final List<Color> colors = [
+      Colors.blue, Colors.red, Colors.green, Colors.orange, Colors.purple, 
+      Colors.pink, Colors.teal, Colors.amber, Colors.indigo, Colors.brown,
+      Colors.cyan, Colors.lime, Colors.lightGreen, Colors.deepOrange, Colors.deepPurple,
+      Colors.blueGrey, Colors.grey, Colors.black, Colors.lightBlue, Colors.redAccent
+    ];
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          backgroundColor: AppTheme.surfaceColor,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Text('Yeni Kategori', style: TextStyle(color: Colors.white)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                onChanged: (val) => newCatName = val,
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  hintText: 'Kategori Adı',
+                  hintStyle: const TextStyle(color: Colors.grey),
+                  filled: true,
+                  fillColor: Colors.white.withOpacity(0.05),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: colors.map((c) => GestureDetector(
+                  onTap: () => setDialogState(() => selectedColor = c),
+                  child: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: c,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: selectedColor == c ? Colors.white : Colors.transparent, width: 2),
+                    ),
+                  ),
+                )).toList(),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context), 
+              child: const Text('Vazgeç', style: TextStyle(color: Colors.grey))
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (newCatName.trim().isNotEmpty) {
+                  ref.read(categoriesProvider.notifier).addCategory(
+                    model.Category(name: newCatName.trim(), colorCode: selectedColor.value)
+                  );
+                  setState(() {
+                    _selectedCategory = newCatName.trim();
+                    _selectedColor = selectedColor;
+                  });
+                  Navigator.pop(context);
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.futureColor,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: const Text('Ekle', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+
+
+  void _showEditCategoryDialog(model.Category category) {
+    Color selectedColor = Color(category.colorCode);
+    final List<Color> colors = [
+      Colors.blue, Colors.red, Colors.green, Colors.orange, Colors.purple, 
+      Colors.pink, Colors.teal, Colors.amber, Colors.indigo, Colors.brown,
+      Colors.cyan, Colors.lime, Colors.lightGreen, Colors.deepOrange, Colors.deepPurple,
+      Colors.blueGrey, Colors.grey, Colors.black, Colors.lightBlue, Colors.redAccent
+    ];
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          backgroundColor: AppTheme.surfaceColor,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Text('${category.name} Rengini Düzenle', style: const TextStyle(color: Colors.white)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: colors.map((c) => GestureDetector(
+                  onTap: () => setDialogState(() => selectedColor = c),
+                  child: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: c,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: selectedColor == c ? Colors.white : Colors.transparent, width: 2),
+                    ),
+                  ),
+                )).toList(),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context), 
+              child: const Text('Vazgeç', style: TextStyle(color: Colors.grey))
+            ),
+            ElevatedButton(
+              onPressed: () {
+                // Creates a copy with new color but keeps the same name (which acts as ID basically)
+                final updated = category.copyWith(colorCode: selectedColor.value);
+                
+                // 1. Kategoriyi güncelle
+                ref.read(categoriesProvider.notifier).updateCategory(updated);
+                
+                // 2. Bu kategoriye ait TÜM işlemlerin rengini güncelle
+                ref.read(transactionsProvider.notifier).updateCategoryColor(updated.name, updated.colorCode);
+                
+                // Eğer seçili olan kategoriyi güncellediysek, UI'daki seçili rengi de güncelle
+                if (_selectedCategory == category.name) {
+                  setState(() {
+                    _selectedColor = selectedColor;
+                  });
+                }
+                Navigator.pop(context);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.futureColor,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: const Text('Güncelle', style: TextStyle(color: Colors.white)),
+            ),
           ],
         ),
       ),
@@ -240,13 +525,25 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
 
   Widget _buildTypeToggle(TransactionType type, String label, Color color) {
     final isSelected = _type == type;
+    final isEditing = widget.transactionToEdit != null;
+    
     return Expanded(
       child: GestureDetector(
-        onTap: () => setState(() => _type = type),
+        onTap: isEditing ? null : () => setState(() => _type = type),
         child: Container(
-          decoration: BoxDecoration(color: isSelected ? color : Colors.transparent, borderRadius: BorderRadius.circular(25)),
+          decoration: BoxDecoration(
+            color: isSelected ? color.withOpacity(isEditing ? 0.7 : 1.0) : Colors.transparent, 
+            borderRadius: BorderRadius.circular(25)
+          ),
           alignment: Alignment.center,
-          child: Text(label, style: TextStyle(color: isSelected ? Colors.white : Colors.grey, fontWeight: FontWeight.bold)),
+          child: Text(
+            label, 
+            style: TextStyle(
+              color: isSelected ? Colors.white : Colors.grey, 
+              fontWeight: FontWeight.bold,
+              decoration: isEditing && !isSelected ? TextDecoration.lineThrough : null,
+            )
+          ),
         ),
       ),
     );
@@ -372,15 +669,26 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
     
     int iterations = 1; 
     if (_recurrence != RecurrenceRule.none) {
-      if (_recurrence == RecurrenceRule.daily) iterations = 365;
-      else if (_recurrence == RecurrenceRule.weekly) iterations = 52;
-      else if (_recurrence == RecurrenceRule.biweekly) iterations = 26;
-      else if (_recurrence == RecurrenceRule.monthly) iterations = 12;
-      else if (_recurrence == RecurrenceRule.firstWorkday) iterations = 12;
-      else if (_recurrence == RecurrenceRule.lastWorkday) iterations = 12;
-      else if (_recurrence == RecurrenceRule.quarterly) iterations = 4;
-      else if (_recurrence == RecurrenceRule.semiannually) iterations = 2;
-      else if (_recurrence == RecurrenceRule.yearly) iterations = 5;
+      if (_isEndDateEnabled) {
+        iterations = _calculateIterations(_selectedDate, _endDate, _recurrence);
+      } else {
+        // 2026 yılında başlayan tekrarlı işlemler, yıl sonunda bitsin (Kullanıcı Talebi)
+        if (_selectedDate.year == 2026) {
+          final endOfYear = DateTime(2026, 12, 31);
+          iterations = _calculateIterations(_selectedDate, endOfYear, _recurrence);
+        } else {
+          // Diğer yıllar için varsayılan limitler
+          if (_recurrence == RecurrenceRule.daily) iterations = 365;
+          else if (_recurrence == RecurrenceRule.weekly) iterations = 52;
+          else if (_recurrence == RecurrenceRule.biweekly) iterations = 26;
+          else if (_recurrence == RecurrenceRule.monthly) iterations = 12;
+          else if (_recurrence == RecurrenceRule.firstWorkday) iterations = 12;
+          else if (_recurrence == RecurrenceRule.lastWorkday) iterations = 12;
+          else if (_recurrence == RecurrenceRule.quarterly) iterations = 4;
+          else if (_recurrence == RecurrenceRule.semiannually) iterations = 2;
+          else if (_recurrence == RecurrenceRule.yearly) iterations = 5;
+        }
+      }
     }
 
     DateTime currentDate = _selectedDate;
@@ -457,9 +765,14 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
             installmentCurrent: i + 1,
           ));
        }
-    } else if (transactionsToSave.isEmpty) { // Tek seferlik işlem
+    } else if (transactionsToSave.isEmpty) { // Tek seferlik işlem veya Mevcut işlem güncelleme
+       final isEditing = widget.transactionToEdit != null;
+       final transactionId = isEditing 
+           ? widget.transactionToEdit!.id 
+           : const Uuid().v4();
+
        transactionsToSave.add(Transaction(
-          id: uuid.v4(),
+          id: transactionId,
           groupId: groupId,
           title: _titleController.text.trim(),
           amount: amount,
@@ -474,6 +787,44 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
 
     ref.read(transactionsProvider.notifier).addTransactions(transactionsToSave);
     Navigator.pop(context);
+  }
+
+  int _calculateIterations(DateTime start, DateTime end, RecurrenceRule rule) {
+    int count = 0;
+    DateTime current = start;
+    
+    while (current.isBefore(end) || current.isAtSameMomentAs(end)) {
+      count++;
+      switch (rule) {
+        case RecurrenceRule.daily:
+          current = current.add(const Duration(days: 1));
+          break;
+        case RecurrenceRule.weekly:
+          current = current.add(const Duration(days: 7));
+          break;
+        case RecurrenceRule.biweekly:
+          current = current.add(const Duration(days: 14));
+          break;
+        case RecurrenceRule.monthly:
+        case RecurrenceRule.firstWorkday:
+        case RecurrenceRule.lastWorkday:
+          current = DateTime(current.year, current.month + 1, current.day);
+          break;
+        case RecurrenceRule.quarterly:
+          current = DateTime(current.year, current.month + 3, current.day);
+          break;
+        case RecurrenceRule.semiannually:
+          current = DateTime(current.year, current.month + 6, current.day);
+          break;
+        case RecurrenceRule.yearly:
+          current = DateTime(current.year + 1, current.month, current.day);
+          break;
+        default:
+          return 1;
+      }
+      if (count > 500) break; // Güvenlik sınırı
+    }
+    return count;
   }
 
   void _showError(String message) {

@@ -1,15 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:sankey_flutter/sankey.dart';
-import 'package:sankey_flutter/sankey_node.dart';
-import 'package:sankey_flutter/sankey_link.dart';
-import 'package:sankey_flutter/sankey_helpers.dart';
 import 'package:intl/intl.dart';
 import '../../providers/app_providers.dart';
 import '../../data/models/transaction.dart';
 import '../../data/models/enums.dart';
 import '../theme/app_theme.dart';
+import '../widgets/date_selector.dart';
+
+import '../widgets/sankey_flow_chart.dart';
 
 class AnalysisScreen extends ConsumerStatefulWidget {
   const AnalysisScreen({super.key});
@@ -26,11 +25,22 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
     final transactions = ref.watch(filteredTransactionsProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Analiz')),
+      appBar: AppBar(
+        title: const Text('Analiz'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.playlist_remove_outlined),
+            tooltip: 'Veri Temizliği',
+            onPressed: () => _showAuditModal(context, transactions),
+          ),
+        ],
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
+            const DateSelector(),
+            const SizedBox(height: 16),
             _buildToggleButtons(),
             const SizedBox(height: 24),
             _viewIndex == 0
@@ -87,19 +97,43 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
   }
 
   Widget _buildSankeyView(List<Transaction> transactions) {
+    double income = 0;
+    double expenses = 0;
+    final incomeMap = <String, double>{};
+    final expenseMap = <String, double>{};
+    final colorMap = <String, Color>{};
+
+    for (var t in transactions) {
+      colorMap[t.category] = Color(t.colorCode);
+      if (t.type == TransactionType.income) {
+        income += t.amount;
+        incomeMap[t.category] = (incomeMap[t.category] ?? 0) + t.amount;
+      } else {
+        expenses += t.amount;
+        expenseMap[t.category] = (expenseMap[t.category] ?? 0) + t.amount;
+      }
+    }
+
+    final incomeBreakdown = incomeMap.entries.map((e) => CategoryVolume(
+      name: e.key,
+      amount: e.value,
+      color: colorMap[e.key] ?? Colors.grey,
+    )).toList()..sort((a, b) => b.amount.compareTo(a.amount));
+
+    final expenseBreakdown = expenseMap.entries.map((e) => CategoryVolume(
+      name: e.key,
+      amount: e.value,
+      color: colorMap[e.key] ?? Colors.grey,
+    )).toList()..sort((a, b) => b.amount.compareTo(a.amount));
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        LayoutBuilder(
-          builder: (context, constraints) {
-            return _FlowAnimation(
-              child: SizedBox(
-                height: 400,
-                width: constraints.maxWidth,
-                child: _SankeyDiagram(transactions: transactions, width: constraints.maxWidth),
-              ),
-            );
-          },
+        SankeyFlowChart(
+          income: income,
+          expenses: expenses,
+          incomeBreakdown: incomeBreakdown,
+          expenseBreakdown: expenseBreakdown,
         ),
       ],
     );
@@ -118,100 +152,13 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
       ],
     );
   }
-}
 
-class _SankeyDiagram extends StatelessWidget {
-  final List<Transaction> transactions;
-  final double width;
-
-  const _SankeyDiagram({required this.transactions, required this.width});
-
-  @override
-  Widget build(BuildContext context) {
-    if (transactions.isEmpty) return const Center(child: Text('Veri yok'));
-
-    final incomeByCat = <String, double>{};
-    final expenseByCat = <String, double>{};
-    final catColors = <String, Color>{};
-
-    for (var t in transactions) {
-      if (t.type == TransactionType.income) {
-        incomeByCat[t.category] = (incomeByCat[t.category] ?? 0) + t.amount;
-        catColors[t.category] = Color(t.colorCode);
-      } else {
-        expenseByCat[t.category] = (expenseByCat[t.category] ?? 0) + t.amount;
-        catColors[t.category] = Color(t.colorCode);
-      }
-    }
-
-    final totalIncome = incomeByCat.values.fold(0.0, (a, b) => a + b);
-    final totalExpense = expenseByCat.values.fold(0.0, (a, b) => a + b);
-    
-    if (totalIncome == 0 && totalExpense == 0) return const Center(child: Text('Diyagram için yetersiz veri'));
-
-    final nodes = <SankeyNode>[];
-    final links = <SankeyLink>[];
-    final platformNodeColors = <String, Color>{};
-
-    final format = NumberFormat.currency(symbol: '₺', decimalDigits: 0);
-
-    // Middle Node
-    final totalIncomeNode = SankeyNode(
-      id: 'total_income', 
-      label: 'Toplam Gelir\n${format.format(totalIncome).replaceAll('₺', '')}₺'
-    );
-    nodes.add(totalIncomeNode);
-    platformNodeColors['total_income'] = const Color(0xFF0D47A1);
-
-    // Left Nodes (Income Sources)
-    for (var entry in incomeByCat.entries) {
-      final node = SankeyNode(
-        id: 'inc_${entry.key}', 
-        label: '${entry.key}\n${format.format(entry.value).replaceAll('₺', '')}₺'
-      );
-      nodes.add(node);
-      platformNodeColors['inc_${entry.key}'] = catColors[entry.key] ?? AppTheme.incomeColor;
-      links.add(SankeyLink(source: node, target: totalIncomeNode, value: entry.value));
-    }
-
-    // Right Nodes (Expenses)
-    for (var entry in expenseByCat.entries) {
-      final node = SankeyNode(
-        id: 'exp_${entry.key}', 
-        label: '${entry.key}\n${format.format(entry.value).replaceAll('₺', '')}₺'
-      );
-      nodes.add(node);
-      platformNodeColors['exp_${entry.key}'] = catColors[entry.key] ?? AppTheme.expenseColor;
-      links.add(SankeyLink(source: totalIncomeNode, target: node, value: entry.value));
-    }
-
-    // Balance Node (If any)
-    final balance = totalIncome - totalExpense;
-    if (balance > 0) {
-      final balanceNode = SankeyNode(
-        id: 'balance', 
-        label: 'Artan Gelir\n${format.format(balance).replaceAll('₺', '')}₺'
-      );
-      nodes.add(balanceNode);
-      platformNodeColors['balance'] = AppTheme.incomeColor;
-      links.add(SankeyLink(source: totalIncomeNode, target: balanceNode, value: balance));
-    }
-
-    final dataSet = SankeyDataSet(nodes: nodes, links: links);
-    final layoutEngine = generateSankeyLayout(
-      width: width,
-      height: 380,
-      nodeWidth: 35,
-      nodePadding: 25,
-    );
-    dataSet.layout(layoutEngine);
-
-    return SankeyDiagramWidget(
-      data: dataSet,
-      size: Size(width, 380),
-      nodeColors: platformNodeColors,
-      showLabels: true,
-      showTexture: false,
+  void _showAuditModal(BuildContext context, List<Transaction> transactions) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => _AuditListModal(transactions: transactions),
     );
   }
 }
@@ -223,112 +170,236 @@ class _TrendChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (transactions.isEmpty) return const Center(child: Text("Veri Yok", style: TextStyle(color: Colors.grey)));
+
     final now = DateTime.now();
+    // Generate dates for current month + previous 5 months (total 6)
     final last6Months = List.generate(6, (i) => DateTime(now.year, now.month - (5 - i), 1));
 
     final data = last6Months.map((month) {
       final monthlyTrans = transactions.where((t) => t.date.year == month.year && t.date.month == month.month);
       final income = monthlyTrans.where((t) => t.type == TransactionType.income).fold(0.0, (sum, t) => sum + t.amount);
       final expense = monthlyTrans.where((t) => t.type == TransactionType.expense).fold(0.0, (sum, t) => sum + t.amount);
-      return {'month': DateFormat('MMM').format(month), 'income': income, 'expense': expense};
+      return {'month': DateFormat('MMM', 'tr_TR').format(month), 'income': income, 'expense': expense};
     }).toList();
 
-    return BarChart(
-      BarChartData(
-        alignment: BarChartAlignment.spaceAround,
-        maxY: data.fold(0.0, (max, d) => (d['income'] as double) > (d['expense'] as double) ? ((d['income'] as double) > max ? d['income'] as double : max) : ((d['expense'] as double) > max ? d['expense'] as double : max)) * 1.2,
-        barGroups: List.generate(data.length, (index) {
-          final item = data[index];
-          return BarChartGroupData(
-            x: index,
-            barRods: [
-              BarChartRodData(toY: item['income'] as double, color: AppTheme.incomeColor, width: 8),
-              BarChartRodData(toY: item['expense'] as double, color: AppTheme.expenseColor, width: 8),
-            ],
-          );
-        }),
-        titlesData: FlTitlesData(
-          bottomTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              getTitlesWidget: (val, _) => Text(data[val.toInt()]['month'] as String, style: const TextStyle(fontSize: 10)),
+    // Calculate max Y for scale
+    double maxY = 0;
+    for (var d in data) {
+      final inc = d['income'] as double;
+      final exp = d['expense'] as double;
+      if (inc > maxY) maxY = inc;
+      if (exp > maxY) maxY = exp;
+    }
+    maxY = maxY * 1.2; // Add buffer
+    if (maxY == 0) maxY = 1000;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: BarChart(
+            BarChartData(
+              alignment: BarChartAlignment.spaceAround,
+              maxY: maxY,
+              barTouchData: BarTouchData(
+                touchTooltipData: BarTouchTooltipData(
+                  getTooltipColor: (_) => AppTheme.surfaceColor,
+                  getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                    final type = rodIndex == 0 ? 'Gelir' : 'Gider';
+                    final value = NumberFormat.currency(symbol: '₺', decimalDigits: 0, locale: 'tr_TR').format(rod.toY);
+                    return BarTooltipItem(
+                      '$type\n$value',
+                      const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    );
+                  },
+                ),
+              ),
+              barGroups: List.generate(data.length, (index) {
+                final item = data[index];
+                final income = item['income'] as double;
+                final expense = item['expense'] as double;
+
+                return BarChartGroupData(
+                  x: index,
+                  barsSpace: 4,
+                  barRods: [
+                    BarChartRodData(
+                      toY: income,
+                      color: AppTheme.incomeColor,
+                      width: 12,
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+                    ),
+                    BarChartRodData(
+                      toY: expense,
+                      color: AppTheme.expenseColor,
+                      width: 12,
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+                    ),
+                  ],
+                );
+              }),
+              titlesData: FlTitlesData(
+                bottomTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    getTitlesWidget: (val, meta) {
+                      if (val.toInt() >= data.length) return const SizedBox();
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 8.0),
+                        child: Text(
+                          data[val.toInt()]['month'] as String,
+                          style: const TextStyle(color: Colors.grey, fontSize: 11),
+                        ),
+                      );
+                    },
+                    reservedSize: 30,
+                  ),
+                ),
+                leftTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    reservedSize: 40,
+                    getTitlesWidget: (val, meta) {
+                      if (val == 0) return const SizedBox();
+                      return Text(
+                        NumberFormat.compact(locale: 'tr_TR').format(val),
+                        style: const TextStyle(color: Colors.grey, fontSize: 10),
+                      );
+                    },
+                  ),
+                ),
+                topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+              ),
+              gridData: FlGridData(
+                show: true,
+                drawVerticalLine: false,
+                horizontalInterval: maxY / 5,
+                getDrawingHorizontalLine: (value) => const FlLine(color: Colors.white10, strokeWidth: 1),
+              ),
+              borderData: FlBorderData(show: false),
             ),
           ),
-          leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
         ),
-        gridData: const FlGridData(show: false),
-        borderData: FlBorderData(show: false),
-      ),
+        const SizedBox(height: 16),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            _LegendItem(color: AppTheme.incomeColor, label: 'Gelirler'),
+            const SizedBox(width: 24),
+            _LegendItem(color: AppTheme.expenseColor, label: 'Giderler'),
+          ],
+        ),
+      ],
     );
   }
 }
 
-class _FlowAnimation extends StatefulWidget {
-  final Widget child;
-  const _FlowAnimation({required this.child});
+class _LegendItem extends StatelessWidget {
+  final Color color;
+  final String label;
 
-  @override
-  State<_FlowAnimation> createState() => _FlowAnimationState();
-}
-
-class _FlowAnimationState extends State<_FlowAnimation> with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _widthAnimation;
-  late Animation<double> _opacityAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 2000),
-    );
-
-    _widthAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: const Interval(0.0, 0.8, curve: Curves.easeOutCubic),
-      ),
-    );
-
-    _opacityAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: const Interval(0.2, 1.0, curve: Curves.easeIn),
-      ),
-    );
-
-    _controller.forward();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
+  const _LegendItem({required this.color, required this.label});
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, child) {
-        return Opacity(
-          opacity: _opacityAnimation.value,
-          child: Align(
-            alignment: Alignment.centerLeft,
-            widthFactor: _widthAnimation.value,
-            child: ClipRect(
-              child: SizedBox(
-                width: MediaQuery.of(context).size.width, // Force specific width during animation
-                child: widget.child,
+    return Row(
+      children: [
+        Container(
+          width: 12,
+          height: 12,
+          decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(3)),
+        ),
+        const SizedBox(width: 8),
+        Text(label, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+      ],
+    );
+  }
+}
+
+class _AuditListModal extends ConsumerWidget {
+  final List<Transaction> transactions;
+
+  const _AuditListModal({super.key, required this.transactions});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return DraggableScrollableSheet(
+      initialChildSize: 0.8,
+      minChildSize: 0.5,
+      maxChildSize: 0.95,
+      builder: (_, controller) {
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: const BoxDecoration(
+            color: AppTheme.surfaceColor,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Veri Listesi (Tümü)', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close)),
+                ],
               ),
-            ),
+              const Divider(),
+              Expanded(
+                child: transactions.isEmpty 
+                    ? const Center(child: Text('Bu ay için veri yok', style: TextStyle(color: Colors.grey)))
+                    : ListView.builder(
+                        controller: controller,
+                        itemCount: transactions.length,
+                        itemBuilder: (context, index) {
+                          final t = transactions[index];
+                          final isIncome = t.type == TransactionType.income;
+                          final format = NumberFormat.currency(symbol: '₺', decimalDigits: 0);
+                          return Dismissible(
+                             key: Key(t.id),
+                             direction: DismissDirection.endToStart,
+                             background: Container(
+                               alignment: Alignment.centerRight,
+                               padding: const EdgeInsets.only(right: 20),
+                               color: Colors.red,
+                               child: const Icon(Icons.delete, color: Colors.white),
+                             ),
+                             onDismissed: (_) {
+                               ref.read(transactionsProvider.notifier).deleteTransaction(t.id);
+                             },
+                             child: ListTile(
+                               leading: CircleAvatar(
+                                 backgroundColor: Color(t.colorCode).withOpacity(0.2),
+                                 child: Icon(
+                                   isIncome ? Icons.arrow_downward : Icons.arrow_upward,
+                                   color: Color(t.colorCode),
+                                   size: 20,
+                                 ),
+                               ),
+                               title: Text(t.title, style: const TextStyle(color: Colors.white)),
+                               subtitle: Text(
+                                 '${DateFormat('dd MMM', 'tr_TR').format(t.date)} • ${t.category}', 
+                                 style: const TextStyle(color: Colors.grey)
+                               ),
+                               trailing: Text(
+                                 '${isIncome ? '+' : '-'}${format.format(t.amount).replaceAll('₺', '')}₺',
+                                 style: TextStyle(
+                                   color: isIncome ? AppTheme.incomeColor : AppTheme.expenseColor,
+                                   fontWeight: FontWeight.bold,
+                                   fontSize: 16,
+                                 ),
+                               ),
+                             ),
+                          );
+                        },
+                      ),
+              ),
+            ],
           ),
         );
       },
-      child: widget.child,
     );
   }
 }
