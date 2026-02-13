@@ -12,6 +12,9 @@ import 'package:uuid/uuid.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'hive_registrar.g.dart';
 
+import 'ui/screens/pin_screen.dart';
+import 'providers/app_providers.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // ⚠️ BU SATIRI EKLE: Türkçe tarih formatını başlat
@@ -48,16 +51,31 @@ void main() async {
   );
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends ConsumerWidget {
   const MyApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final settings = ref.watch(appSettingsProvider);
+    final isVerified = ref.watch(pinStateProvider);
+
+    Widget home;
+    if (settings.pinCode == null) {
+      // No PIN set yet - force setup
+      home = const PinScreen(isSetupMode: true);
+    } else if (!isVerified) {
+      // PIN set but not verified this session
+      home = const PinScreen(isSetupMode: false);
+    } else {
+      // PIN verified
+      home = const MainScreen();
+    }
+
     return MaterialApp(
       title: 'ProFinans',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.darkTheme,
-      home: const MainScreen(),
+      home: home,
     );
   }
 }

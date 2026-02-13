@@ -42,7 +42,7 @@ final class AppSettingsNotifierProvider
 }
 
 String _$appSettingsNotifierHash() =>
-    r'ffb581ab3bdb59c3920f2aacb7052e12bd513cc4';
+    r'0984a5cccf164d871ae8bb0d31cdbae2fa61c61a';
 
 abstract class _$AppSettingsNotifier extends $Notifier<AppSettings> {
   AppSettings build();
@@ -55,6 +55,57 @@ abstract class _$AppSettingsNotifier extends $Notifier<AppSettings> {
             as $ClassProviderElement<
               AnyNotifier<AppSettings, AppSettings>,
               AppSettings,
+              Object?,
+              Object?
+            >;
+    element.handleCreate(ref, build);
+  }
+}
+
+@ProviderFor(PinState)
+final pinStateProvider = PinStateProvider._();
+
+final class PinStateProvider extends $NotifierProvider<PinState, bool> {
+  PinStateProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'pinStateProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$pinStateHash();
+
+  @$internal
+  @override
+  PinState create() => PinState();
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(bool value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<bool>(value),
+    );
+  }
+}
+
+String _$pinStateHash() => r'90b296fc68a84680ad93d72a06a21e5de2743201';
+
+abstract class _$PinState extends $Notifier<bool> {
+  bool build();
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final ref = this.ref as $Ref<bool, bool>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<bool, bool>,
+              bool,
               Object?,
               Object?
             >;

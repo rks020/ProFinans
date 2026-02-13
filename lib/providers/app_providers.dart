@@ -1,4 +1,5 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/models/app_settings.dart';
 import '../data/models/app_group.dart';
 import '../data/models/transaction.dart';
@@ -16,13 +17,9 @@ class AppSettingsNotifier extends _$AppSettingsNotifier {
   }
 
   Future<void> updateActiveGroup(String? groupId) async {
-    await ref.read(settingsRepositoryProvider).updateActiveGroup(groupId);
-    state = state.copyWith(activeGroupId: groupId);
-  }
-
-  Future<void> updateSettings(AppSettings settings) async {
-    await ref.read(settingsRepositoryProvider).saveSettings(settings);
-    state = settings;
+    final updated = state.copyWith(activeGroupId: groupId);
+    await ref.read(settingsRepositoryProvider).saveSettings(updated);
+    state = updated;
   }
 
   Future<void> togglePrivacyMode() async {
@@ -30,6 +27,22 @@ class AppSettingsNotifier extends _$AppSettingsNotifier {
     await ref.read(settingsRepositoryProvider).saveSettings(updated);
     state = updated;
   }
+
+  Future<void> updatePinCode(String? pin) async {
+    final updated = state.copyWith(pinCode: pin);
+    await ref.read(settingsRepositoryProvider).saveSettings(updated);
+    state = updated;
+  }
+}
+
+// Volatile state for PIN verification in the current session
+@riverpod
+class PinState extends _$PinState {
+  @override
+  bool build() => false;
+
+  void verify() => state = true;
+  void reset() => state = false;
 }
 
 @riverpod

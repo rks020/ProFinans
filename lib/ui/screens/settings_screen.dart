@@ -9,6 +9,7 @@ import '../../providers/app_providers.dart';
 import '../../data/models/app_group.dart';
 import '../theme/app_theme.dart';
 import 'yearly_analysis_screen.dart';
+import 'pin_screen.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -46,6 +47,17 @@ class SettingsScreen extends ConsumerWidget {
             title: const Text('Yedekle (JSON Export)'),
             subtitle: const Text('Tüm verileri İndirilenler klasörüne kaydet'),
             onTap: () => _exportData(context, ref),
+          ),
+          const Divider(height: 40),
+          _SectionTitle(title: 'Güvenlik'),
+          ListTile(
+            leading: const Icon(Icons.pin, color: AppTheme.futureColor),
+            title: const Text('PIN Kodunu Değiştir'),
+            subtitle: const Text('Uygulama giriş şifresini güncelleyin'),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => PinScreen(isSetupMode: true)),
+            ),
           ),
           const Divider(height: 40),
           _SectionTitle(title: 'Raporlar'),

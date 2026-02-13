@@ -21,13 +21,14 @@ class AppSettingsAdapter extends TypeAdapter<AppSettings> {
       selectedCurrency: fields[1] == null ? 'TRY' : fields[1] as String,
       themePreference: fields[2] == null ? 'dark' : fields[2] as String,
       isPrivacyMode: fields[3] == null ? false : fields[3] as bool,
+      pinCode: fields[4] as String?,
     );
   }
 
   @override
   void write(BinaryWriter writer, AppSettings obj) {
     writer
-      ..writeByte(4)
+      ..writeByte(5)
       ..writeByte(0)
       ..write(obj.activeGroupId)
       ..writeByte(1)
@@ -35,7 +36,9 @@ class AppSettingsAdapter extends TypeAdapter<AppSettings> {
       ..writeByte(2)
       ..write(obj.themePreference)
       ..writeByte(3)
-      ..write(obj.isPrivacyMode);
+      ..write(obj.isPrivacyMode)
+      ..writeByte(4)
+      ..write(obj.pinCode);
   }
 
   @override
@@ -58,6 +61,7 @@ _AppSettings _$AppSettingsFromJson(Map<String, dynamic> json) => _AppSettings(
   selectedCurrency: json['selectedCurrency'] as String? ?? 'TRY',
   themePreference: json['themePreference'] as String? ?? 'dark',
   isPrivacyMode: json['isPrivacyMode'] as bool? ?? false,
+  pinCode: json['pinCode'] as String?,
 );
 
 Map<String, dynamic> _$AppSettingsToJson(_AppSettings instance) =>
@@ -66,4 +70,5 @@ Map<String, dynamic> _$AppSettingsToJson(_AppSettings instance) =>
       'selectedCurrency': instance.selectedCurrency,
       'themePreference': instance.themePreference,
       'isPrivacyMode': instance.isPrivacyMode,
+      'pinCode': instance.pinCode,
     };
