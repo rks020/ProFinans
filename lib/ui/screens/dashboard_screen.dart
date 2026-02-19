@@ -72,6 +72,7 @@ class DashboardScreen extends ConsumerWidget {
               padding: EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
               child: _BottomSummary(),
             ),
+            const SizedBox(height: 100), // FAB ve alt bar için boşluk
           ],
         ),
       ),

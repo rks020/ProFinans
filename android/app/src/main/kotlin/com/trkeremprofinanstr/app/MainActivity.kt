@@ -1,4 +1,4 @@
-package com.profinans.profinans
+package com.trkeremprofinanstr.app
 
 import io.flutter.embedding.android.FlutterActivity
 

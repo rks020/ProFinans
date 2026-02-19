@@ -33,6 +33,11 @@ class AppSettingsNotifier extends _$AppSettingsNotifier {
     await ref.read(settingsRepositoryProvider).saveSettings(updated);
     state = updated;
   }
+
+  Future<void> restoreSettings(AppSettings settings) async {
+    await ref.read(settingsRepositoryProvider).saveSettings(settings);
+    state = settings;
+  }
 }
 
 // Volatile state for PIN verification in the current session
@@ -61,6 +66,13 @@ class GroupsNotifier extends _$GroupsNotifier {
     await ref.read(groupsRepositoryProvider).deleteGroup(id);
     state = state.where((g) => g.id != id).toList();
   }
+
+  Future<void> restoreGroups(List<AppGroup> groups) async {
+    for (final group in groups) {
+      await ref.read(groupsRepositoryProvider).saveGroup(group);
+    }
+    state = ref.watch(groupsRepositoryProvider).getAllGroups();
+  }
 }
 
 @riverpod
@@ -88,6 +100,11 @@ class TransactionsNotifier extends _$TransactionsNotifier {
   Future<void> addTransactions(List<Transaction> transactions) async {
     await ref.read(transactionsRepositoryProvider).saveTransactions(transactions);
     state = [...state, ...transactions];
+  }
+
+  Future<void> restoreTransactions(List<Transaction> transactions) async {
+    await ref.read(transactionsRepositoryProvider).saveTransactions(transactions);
+    state = ref.watch(transactionsRepositoryProvider).getAllTransactions();
   }
 
   Future<void> deleteTransaction(String id) async {

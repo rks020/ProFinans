@@ -5,8 +5,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:uuid/uuid.dart';
+import 'package:file_picker/file_picker.dart';
 import '../../providers/app_providers.dart';
 import '../../data/models/app_group.dart';
+import '../../data/models/app_settings.dart';
+import '../../data/models/transaction.dart';
 import '../theme/app_theme.dart';
 import 'yearly_analysis_screen.dart';
 import 'pin_screen.dart';
@@ -47,6 +50,12 @@ class SettingsScreen extends ConsumerWidget {
             title: const Text('Yedekle (JSON Export)'),
             subtitle: const Text('Tüm verileri İndirilenler klasörüne kaydet'),
             onTap: () => _exportData(context, ref),
+          ),
+          ListTile(
+            leading: const Icon(Icons.restore),
+            title: const Text('Veri İçe Aktar (Import)'),
+            subtitle: const Text('Yedeklenen verileri geri yükle'),
+            onTap: () => _importData(context, ref),
           ),
           const Divider(height: 40),
           _SectionTitle(title: 'Güvenlik'),
@@ -163,6 +172,54 @@ class SettingsScreen extends ConsumerWidget {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Hata oluştu: $e')),
       );
+    }
+  }
+
+  Future<void> _importData(BuildContext context, WidgetRef ref) async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['json'],
+      );
+
+      if (result != null && result.files.single.path != null) {
+        final file = File(result.files.single.path!);
+        final jsonString = await file.readAsString();
+        final data = json.decode(jsonString) as Map<String, dynamic>;
+
+        // 1. Grupları Yükle
+        if (data.containsKey('groups')) {
+          final groupsList = (data['groups'] as List).map((g) => AppGroup.fromJson(g)).toList();
+          await ref.read(groupsProvider.notifier).restoreGroups(groupsList);
+        }
+
+        // 2. Ayarları Yükle
+        if (data.containsKey('settings')) {
+          final settings = AppSettings.fromJson(data['settings']);
+          await ref.read(appSettingsProvider.notifier).restoreSettings(settings);
+        }
+
+        // 3. İşlemleri Yükle
+        if (data.containsKey('transactions')) {
+          final transactionsList = (data['transactions'] as List)
+              .map((t) => Transaction.fromJson(t))
+              .toList()
+              .cast<Transaction>();
+          await ref.read(transactionsProvider.notifier).restoreTransactions(transactionsList);
+        }
+
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Veriler başarıyla içe aktarıldı.')),
+          );
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('İçe aktarma hatası: $e')),
+        );
+      }
     }
   }
 }

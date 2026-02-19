@@ -104,6 +104,8 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
     final expenseMap = <String, double>{};
     final investmentMap = <String, double>{};
     final colorMap = <String, Color>{};
+    final expenseCountMap = <String, int>{};
+    final investmentCountMap = <String, int>{};
 
     for (var t in transactions) {
       colorMap[t.category] = Color(t.colorCode);
@@ -113,9 +115,11 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
       } else if (t.type == TransactionType.investment) {
         investments += t.amount;
         investmentMap[t.category] = (investmentMap[t.category] ?? 0) + t.amount;
+        investmentCountMap[t.category] = (investmentCountMap[t.category] ?? 0) + 1;
       } else {
         expenses += t.amount;
         expenseMap[t.category] = (expenseMap[t.category] ?? 0) + t.amount;
+        expenseCountMap[t.category] = (expenseCountMap[t.category] ?? 0) + 1;
       }
     }
 
@@ -138,11 +142,22 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
     )).toList()..sort((a, b) => b.amount.compareTo(a.amount));
 
     final isPrivacyMode = ref.watch(appSettingsProvider).isPrivacyMode;
+    final currencyFormat = NumberFormat.currency(locale: 'tr_TR', symbol: '₺', decimalDigits: 0);
+
+    // Dynamic height - no max cap so everything is visible
+    final leftItems = incomeBreakdown.length;
+    final rightItems = expenseBreakdown.length + investmentBreakdown.length + (income - expenses - investments > 0 ? 1 : 0);
+    final maxSideItems = leftItems > rightItems ? leftItems : rightItems;
+    
+    final minHeight = 350.0;
+    final calculatedHeight = maxSideItems * 40.0 + 80.0; 
+    final chartHeight = calculatedHeight < minHeight ? minHeight : calculatedHeight;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SankeyFlowChart(
+          height: chartHeight,
           income: income,
           expenses: expenses,
           investments: investments,
@@ -151,6 +166,75 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
           investmentBreakdown: investmentBreakdown,
           isPrivacyMode: isPrivacyMode,
         ),
+        const SizedBox(height: 24),
+        // --- Gider Detayları ---
+        if (expenseBreakdown.isNotEmpty) ...[
+          const Text(
+            'Gider Detayları',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+          ),
+          const SizedBox(height: 12),
+          ...expenseBreakdown.map((cat) {
+            final count = expenseCountMap[cat.name] ?? 0;
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 8.0),
+              child: Row(
+                children: [
+                  Container(
+                    width: 12, height: 12,
+                    decoration: BoxDecoration(color: cat.color, borderRadius: BorderRadius.circular(3)),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      '${cat.name} x $count',
+                      style: const TextStyle(color: Colors.white70, fontSize: 13),
+                    ),
+                  ),
+                  Text(
+                    isPrivacyMode ? '***₺' : currencyFormat.format(cat.amount),
+                    style: TextStyle(color: cat.color, fontWeight: FontWeight.bold, fontSize: 13),
+                  ),
+                ],
+              ),
+            );
+          }),
+        ],
+        // --- Yatırım Detayları ---
+        if (investmentBreakdown.isNotEmpty) ...[
+          const SizedBox(height: 16),
+          const Text(
+            'Yatırım Detayları',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+          ),
+          const SizedBox(height: 12),
+          ...investmentBreakdown.map((cat) {
+            final count = investmentCountMap[cat.name] ?? 0;
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 8.0),
+              child: Row(
+                children: [
+                  Container(
+                    width: 12, height: 12,
+                    decoration: BoxDecoration(color: cat.color, borderRadius: BorderRadius.circular(3)),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      '${cat.name} x $count',
+                      style: const TextStyle(color: Colors.white70, fontSize: 13),
+                    ),
+                  ),
+                  Text(
+                    isPrivacyMode ? '***₺' : currencyFormat.format(cat.amount),
+                    style: TextStyle(color: cat.color, fontWeight: FontWeight.bold, fontSize: 13),
+                  ),
+                ],
+              ),
+            );
+          }),
+        ],
+        const SizedBox(height: 24),
       ],
     );
   }
