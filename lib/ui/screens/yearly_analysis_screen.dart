@@ -248,21 +248,23 @@ class _YearlyAnalysisScreenState extends ConsumerState<YearlyAnalysisScreen> {
   MapEntry<int, double> _findTopGrowthMonth(Map<String, Map<int, double>> stats) {
     final income = stats['income']!;
     final expense = stats['expense']!;
+    final investment = stats['investment']!;
     final growth = <int, double>{};
 
     for (int i = 1; i <= 12; i++) {
       final inc = income[i] ?? 0;
       final exp = expense[i] ?? 0;
-      // Investment is considered an asset, so maybe we shouldn't subtract it from 'growth' or 'saving'
-      // But 'Net Income' usually means Income - Expense. Investment is a form of saving.
-      // So Growth = Income - Expense (Investments are part of the growth/saving)
-      if (inc > 0 || exp > 0) {
-        growth[i] = inc - exp;
+      final inv = investment[i] ?? 0;
+      // Artan Gelir = Gelir - Gider - Yatırım (net kalan)
+      if (inc > 0 || exp > 0 || inv > 0) {
+        final net = inc - exp - inv;
+        if (net > 0) {
+          growth[i] = net;
+        }
       }
     }
 
     if (growth.isEmpty) return const MapEntry(0, 0);
-    // Find max growth (can be negative if all months are loss, but usually we want "best" month)
     return growth.entries.reduce((a, b) => a.value > b.value ? a : b);
   }
 
@@ -377,14 +379,15 @@ class _CategoryPieChart extends StatelessWidget {
               sectionsSpace: 2,
               centerSpaceRadius: 40,
               sections: sortedEntries.map((e) {
-                final isOther = false; // logic for "Other" can be added if needed
+                final total = categories.values.reduce((a,b)=>a+b);
+                final pct = (e.value / total) * 100;
                 return PieChartSectionData(
                   color: Color(categoryColors[e.key] ?? 0xFF9E9E9E),
                   value: e.value,
-                  title: '${((e.value / categories.values.reduce((a,b)=>a+b)) * 100).toInt()}%',
+                  title: pct >= 5 ? '${pct.toInt()}%\n${e.key}' : '',
                   radius: 50,
-                  titleStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
-                  showTitle: true,
+                  titleStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
+                  showTitle: pct >= 5,
                 );
               }).toList(),
             ),

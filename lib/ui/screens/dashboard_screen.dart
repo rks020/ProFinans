@@ -409,20 +409,37 @@ class _VerticalSummaryCardState extends ConsumerState<VerticalSummaryCard> {
               const SizedBox(width: 12),
               GestureDetector(
                 onTap: () => ref.read(transactionsProvider.notifier).togglePaid(t.id),
-                child: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: t.isPaid ? AppTheme.incomeColor.withOpacity(0.2) : Colors.white10,
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: t.isPaid ? AppTheme.incomeColor : Colors.transparent,
-                      width: 1
+                child: Material(
+                  color: Colors.transparent,
+                  shape: const CircleBorder(),
+                  child: Container(
+                    width: 36,
+                    height: 36,
+                    alignment: Alignment.center,
+                    decoration: ShapeDecoration(
+                      shape: CircleBorder(
+                        side: BorderSide(
+                          color: t.isPaid ? AppTheme.incomeColor : Colors.white24,
+                          width: 2,
+                        ),
+                      ),
+                      color: t.isPaid
+                          ? AppTheme.incomeColor.withOpacity(0.2)
+                          : Colors.white10,
                     ),
-                  ),
-                  child: Icon(
-                    t.isPaid ? Icons.check : (widget.title == 'Geciken' ? Icons.priority_high : Icons.remove),
-                    color: t.isPaid ? AppTheme.incomeColor : (widget.title == 'Geciken' ? AppTheme.expenseColor : AppTheme.futureColor),
-                    size: 18,
+                    child: Icon(
+                      t.isPaid
+                          ? Icons.check
+                          : (widget.title == 'Geciken'
+                              ? Icons.priority_high
+                              : Icons.remove),
+                      color: t.isPaid
+                          ? AppTheme.incomeColor
+                          : (widget.title == 'Geciken'
+                              ? AppTheme.expenseColor
+                              : AppTheme.futureColor),
+                      size: 18,
+                    ),
                   ),
                 ),
               ),

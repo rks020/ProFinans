@@ -41,7 +41,7 @@ class _SankeyFlowChartState extends State<SankeyFlowChart> with SingleTickerProv
       duration: const Duration(milliseconds: 2500),
       vsync: this,
     );
-    _animation = CurvedAnimation(parent: _controller, curve: Curves.linear);
+    _animation = CurvedAnimation(parent: _controller, curve: Curves.easeInOut);
     _controller.forward();
   }
 
@@ -228,7 +228,7 @@ class FlowPainter extends CustomPainter {
       final double visualsH = h < 2 ? 2 : h;
       canvas.drawRRect(
         RRect.fromRectAndRadius(Rect.fromLTWH(x, y, nodeWidth, visualsH), const Radius.circular(4)),
-        Paint()..color = c.withOpacity(opacity),
+        Paint()..color = c.withOpacity(opacity)..isAntiAlias = true,
       );
     }
     
@@ -285,11 +285,11 @@ class FlowPainter extends CustomPainter {
       const Color midBarColor = Color(0xFF1565C0);
       drawNodeRect(midX, topPad, midBarHeight, midBarColor, midBarProgress);
       
-      // "Toplam Gelir" label centered on the blue bar
+      // "Toplam Gelir" label at the top of the blue bar
       final incomeStr = isPrivacyMode ? '***₺' : currencyFormat.format(income);
       _drawLabel(
         canvas, "Toplam Gelir", incomeStr, 
-        Offset(midX + nodeWidth / 2, topPad + midBarHeight / 2), 
+        Offset(midX + nodeWidth / 2, topPad + 18), 
         alignRight: false, opacity: midBarProgress, isCenter: true
       );
     }
@@ -362,7 +362,7 @@ class FlowPainter extends CustomPainter {
 
     canvas.save();
     canvas.clipRect(Rect.fromLTWH(sx, 0, (tx - sx) * progress, 10000));
-    canvas.drawPath(path, Paint()..color = color);
+    canvas.drawPath(path, Paint()..color = color..isAntiAlias = true);
     canvas.restore();
   }
 

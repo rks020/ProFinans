@@ -199,10 +199,22 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
               ),
             );
           }),
+          const Divider(color: Colors.white24, height: 16),
+          Row(
+            children: [
+              const Expanded(
+                child: Text('Toplam Gider', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+              ),
+              Text(
+                isPrivacyMode ? '***₺' : currencyFormat.format(expenses),
+                style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+            ],
+          ),
         ],
         // --- Yatırım Detayları ---
         if (investmentBreakdown.isNotEmpty) ...[
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
           const Text(
             'Yatırım Detayları',
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
@@ -233,6 +245,60 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
               ),
             );
           }),
+          const Divider(color: Colors.white24, height: 16),
+          Row(
+            children: [
+              const Expanded(
+                child: Text('Toplam Yatırım', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+              ),
+              Text(
+                isPrivacyMode ? '***₺' : currencyFormat.format(investments),
+                style: const TextStyle(color: Color(0xFFFFD700), fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+            ],
+          ),
+        ],
+        // --- Genel Toplam ---
+        if (expenseBreakdown.isNotEmpty || investmentBreakdown.isNotEmpty) ...[
+          const SizedBox(height: 16),
+          const Divider(color: Colors.white38, height: 16, thickness: 1.5),
+          Row(
+            children: [
+              const Expanded(
+                child: Text('Toplam Harcama', style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold)),
+              ),
+              Text(
+                isPrivacyMode ? '***₺' : currencyFormat.format(expenses + investments),
+                style: const TextStyle(color: Colors.orangeAccent, fontWeight: FontWeight.bold, fontSize: 15),
+              ),
+            ],
+          ),
+          // --- Negatif gelir uyarısı ---
+          if (income - expenses - investments < 0) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: Colors.red.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.redAccent.withOpacity(0.4)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.warning_amber_rounded, color: Colors.redAccent, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      isPrivacyMode 
+                          ? '- Geliriniz (***₺)' 
+                          : '- Geliriniz: ${currencyFormat.format((expenses + investments - income).abs())}',
+                      style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 14),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
         const SizedBox(height: 24),
       ],
