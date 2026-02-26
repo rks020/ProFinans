@@ -90,18 +90,22 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
       : (_type == TransactionType.investment ? const Color(0xFFFFD700) : AppTheme.expenseColor);
     final isEditing = widget.transactionToEdit != null;
 
-    return Container(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom + 20,
-        left: 20,
-        right: 20,
-        top: 12,
-      ),
-      decoration: const BoxDecoration(
-        color: AppTheme.backgroundColor,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
-      ),
-      child: SingleChildScrollView(
+    return GestureDetector(
+      onTap: () => FocusScope.of(context).unfocus(),
+      onHorizontalDragUpdate: (_) => FocusScope.of(context).unfocus(),
+      child: Container(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+          left: 20,
+          right: 20,
+          top: 12,
+        ),
+        decoration: const BoxDecoration(
+          color: AppTheme.backgroundColor,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+        ),
+        child: SingleChildScrollView(
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -226,7 +230,14 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
                     const Spacer(),
                     Switch(
                       value: _isEndDateEnabled,
-                      onChanged: (val) => setState(() => _isEndDateEnabled = val),
+                      onChanged: (val) {
+                        setState(() {
+                          _isEndDateEnabled = val;
+                          if (val && _recurrence == RecurrenceRule.none) {
+                            _recurrence = RecurrenceRule.monthly;
+                          }
+                        });
+                      },
                       activeColor: AppTheme.futureColor,
                     ),
                   ],
@@ -251,10 +262,10 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
               ),
               const SizedBox(height: 12),
               _buildSelectionRow(
-                label: 'Taksit Sayısı',
+                label: 'Taksit / Tekrar Sayısı',
                 value: '${_calculateIterations(_selectedDate, _endDate, _recurrence)}',
                 icon: Icons.list_alt,
-                onTap: () {}, // Salt okunur
+                onTap: _showRecurrenceInstallmentPicker,
               ),
               Padding(
                 padding: const EdgeInsets.only(left: 48, top: 4),
@@ -382,7 +393,7 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
           ],
         ),
       ),
-    );
+    ));
   }
 
   void _showAddCategoryDialog() {
@@ -504,35 +515,55 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
               ),
             ],
           ),
+          actionsAlignment: MainAxisAlignment.spaceBetween,
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context), 
-              child: const Text('Vazgeç', style: TextStyle(color: Colors.grey))
-            ),
-            ElevatedButton(
               onPressed: () {
-                // Creates a copy with new color but keeps the same name (which acts as ID basically)
-                final updated = category.copyWith(colorCode: selectedColor.value);
-                
-                // 1. Kategoriyi güncelle
-                ref.read(categoriesProvider.notifier).updateCategory(updated);
-                
-                // 2. Bu kategoriye ait TÜM işlemlerin rengini güncelle
-                ref.read(transactionsProvider.notifier).updateCategoryColor(updated.name, updated.colorCode);
-                
-                // Eğer seçili olan kategoriyi güncellediysek, UI'daki seçili rengi de güncelle
+                // Delete category
+                ref.read(categoriesProvider.notifier).deleteCategory(category.name);
                 if (_selectedCategory == category.name) {
                   setState(() {
-                    _selectedColor = selectedColor;
+                    _selectedCategory = 'Genel'; // Boşa çıkmasın diye rastgele birini atıyoruz
+                    _selectedColor = const Color(0xFF1E88E5);
                   });
                 }
                 Navigator.pop(context);
               },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.futureColor,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-              child: const Text('Güncelle', style: TextStyle(color: Colors.white)),
+              child: const Text('Sil', style: TextStyle(color: AppTheme.expenseColor)),
+            ),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context), 
+                  child: const Text('Vazgeç', style: TextStyle(color: Colors.grey))
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    // Creates a copy with new color but keeps the same name (which acts as ID basically)
+                    final updated = category.copyWith(colorCode: selectedColor.value);
+                    
+                    // 1. Kategoriyi güncelle
+                    ref.read(categoriesProvider.notifier).updateCategory(updated);
+                    
+                    // 2. Bu kategoriye ait TÜM işlemlerin rengini güncelle
+                    ref.read(transactionsProvider.notifier).updateCategoryColor(updated.name, updated.colorCode);
+                    
+                    // Eğer seçili olan kategoriyi güncellediysek, UI'daki seçili rengi de güncelle
+                    if (_selectedCategory == category.name) {
+                      setState(() {
+                        _selectedColor = selectedColor;
+                      });
+                    }
+                    Navigator.pop(context);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.futureColor,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: const Text('Güncelle', style: TextStyle(color: Colors.white)),
+                ),
+              ],
             ),
           ],
         ),
@@ -644,6 +675,59 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
     );
   }
 
+  void _showRecurrenceInstallmentPicker() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _OptionPickerModal<int>(
+        title: 'Taksit / Tekrar Sayısı',
+        options: List.generate(36, (i) => i + 1).map((i) => MapEntry(i, '$i Taksit/Kez')).toList(),
+        selectedValue: _calculateIterations(_selectedDate, _endDate, _recurrence),
+        onSelected: (val) {
+          setState(() {
+            _endDate = _calculateEndDateFromIterations(_selectedDate, val, _recurrence);
+          });
+        },
+      ),
+    );
+  }
+
+  DateTime _calculateEndDateFromIterations(DateTime start, int iterations, RecurrenceRule rule) {
+    if (iterations <= 1) return start;
+    DateTime current = start;
+    RecurrenceRule effectiveRule = rule == RecurrenceRule.none ? RecurrenceRule.monthly : rule;
+
+    for (int i = 1; i < iterations; i++) {
+      switch (effectiveRule) {
+        case RecurrenceRule.daily:
+          current = current.add(const Duration(days: 1));
+          break;
+        case RecurrenceRule.weekly:
+          current = current.add(const Duration(days: 7));
+          break;
+        case RecurrenceRule.biweekly:
+          current = current.add(const Duration(days: 14));
+          break;
+        case RecurrenceRule.monthly:
+        case RecurrenceRule.firstWorkday:
+        case RecurrenceRule.lastWorkday:
+          current = DateTime(current.year, current.month + 1, current.day);
+          break;
+        case RecurrenceRule.quarterly:
+          current = DateTime(current.year, current.month + 3, current.day);
+          break;
+        case RecurrenceRule.semiannually:
+          current = DateTime(current.year, current.month + 6, current.day);
+          break;
+        case RecurrenceRule.yearly:
+          current = DateTime(current.year + 1, current.month, current.day);
+          break;
+        default: break;
+      }
+    }
+    return current;
+  }
+
   void _save(WidgetRef ref, String? groupId) {
     // Dismiss keyboard
     FocusScope.of(context).unfocus();
@@ -681,8 +765,49 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
         colorCode: _selectedColor.value,
         recurrenceRule: _recurrence,
       );
-      ref.read(transactionsProvider.notifier).addTransaction(updatedTransaction);
-      Navigator.pop(context);
+
+      bool isRecurring = existing.recurrenceRule != RecurrenceRule.none || updatedTransaction.recurrenceRule != RecurrenceRule.none;
+      if (isRecurring) {
+        showDialog(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            backgroundColor: AppTheme.surfaceColor,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            title: const Text('Tekrarlı İşlemi Güncelle', style: TextStyle(color: Colors.white)),
+            content: const Text(
+              'Yaptığınız değişiklikler sadece bu işlemi mi yoksa, bu yıla ait tüm tekrarları mı etkilesin?',
+              style: TextStyle(color: Colors.white),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext), 
+                child: const Text('İptal', style: TextStyle(color: Colors.grey)),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  ref.read(transactionsProvider.notifier).addTransaction(updatedTransaction);
+                  Navigator.pop(dialogContext);
+                  Navigator.pop(context); // modal'ı kapat
+                },
+                style: ElevatedButton.styleFrom(backgroundColor: AppTheme.surfaceColor),
+                child: const Text('Sadece Bu İşlem', style: TextStyle(color: Colors.white)),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  ref.read(transactionsProvider.notifier).updateBulkTransactions(existing, updatedTransaction);
+                  Navigator.pop(dialogContext);
+                  Navigator.pop(context); // modal'ı kapat
+                },
+                style: ElevatedButton.styleFrom(backgroundColor: AppTheme.futureColor),
+                child: const Text('Tüm Tekrarlar', style: TextStyle(color: Colors.white)),
+              ),
+            ],
+          ),
+        );
+      } else {
+        ref.read(transactionsProvider.notifier).addTransaction(updatedTransaction);
+        Navigator.pop(context);
+      }
       return;
     }
 

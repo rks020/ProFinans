@@ -129,6 +129,42 @@ class TransactionsNotifier extends _$TransactionsNotifier {
     state = state.where((t) => !deleteIds.contains(t.id)).toList();
   }
 
+  Future<void> updateBulkTransactions(Transaction existing, Transaction updated) async {
+    // Bulunacak işlemler: Aynı ismi taşıyan, aynı grupta olan, aynı tipte olan ve AYNI YILA ait olan işlemler
+    final toUpdate = state.where((t) => 
+      t.title == existing.title && 
+      t.groupId == existing.groupId && 
+      t.type == existing.type &&
+      t.date.year == existing.date.year
+    ).toList();
+
+    if (toUpdate.isEmpty) return;
+
+    final updatedTransactions = toUpdate.map((t) {
+      // Bütün tekrarlı işlemlere uygulayacağımız sadece tutar, güncellenen tarih atamaları olmalı.
+      // Özel tarihler değişmez, sadece kategori, renk, miktar ve isim gibi özellikler güncellenir.
+      return t.copyWith(
+        title: updated.title,
+        amount: updated.amount,
+        type: updated.type,
+        category: updated.category,
+        colorCode: updated.colorCode,
+        recurrenceRule: updated.recurrenceRule,
+      );
+    }).toList();
+
+    await ref.read(transactionsRepositoryProvider).saveTransactions(updatedTransactions);
+
+    // State'tekileri tek tek güncelle
+    final updatedIds = updatedTransactions.map((t) => t.id).toSet();
+    state = state.map((t) {
+      if (updatedIds.contains(t.id)) {
+        return updatedTransactions.firstWhere((ut) => ut.id == t.id);
+      }
+      return t;
+    }).toList();
+  }
+
   Future<void> togglePaid(String id) async {
     final transaction = state.firstWhere((t) => t.id == id);
     final updated = transaction.copyWith(isPaid: !transaction.isPaid);
@@ -215,6 +251,11 @@ class CategoriesNotifier extends _$CategoriesNotifier {
     
     // State'i güncelle
     state = state.map((c) => c.name == category.name ? category : c).toList();
+  }
+
+  Future<void> deleteCategory(String name) async {
+    await ref.read(categoriesRepositoryProvider).deleteCategory(name);
+    state = state.where((c) => c.name != name).toList();
   }
 }
 

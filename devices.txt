@@ -1,0 +1,23 @@
+Found 2 connected devices:
+  macOS (desktop) • macos  • darwin-arm64   • macOS 26.1 25B78 darwin-arm64
+  Chrome (web)    • chrome • web-javascript • Google Chrome 145.0.7632.110
+
+Checking for wireless devices...
+
+Found 1 wirelessly connected device:
+  RMO NX1 (wireless) (mobile) • adb-A2JY6R3307001551-K24VIg._adb-tls-connect._tcp • android-arm64 • Android 13 (API 33)
+
+Error: Browsing on the local area network for Bilal Taha iPhone’u. Ensure the device is unlocked and attached with a cable or associated with the same local area network as this Mac.
+The device must be opted into Developer Mode to connect wirelessly. (code -27)
+
+Error: Browsing on the local area network for Bilal Taha Apple Watch’u. Ensure the device is unlocked and discoverable via Bluetooth. (code -27)
+
+Error: Browsing on the local area network for Oğuzcan ASLAN. Ensure the device is unlocked and attached with a cable or associated with the same local area network as this Mac.
+The device must be opted into Developer Mode to connect wirelessly. (code -27)
+
+Error: Browsing on the local area network for Kerem’s iPhone. Ensure the device is unlocked and attached with a cable or associated with the same local area network as this Mac.
+The device must be opted into Developer Mode to connect wirelessly. (code -27)
+
+Run "flutter emulators" to list and start any available device emulators.
+
+If you expected another device to be detected, please run "flutter doctor" to diagnose potential issues. You may also try increasing the time to wait for connected devices with the "--device-timeout" flag. Visit https://flutter.dev/setup/ for troubleshooting tips.
