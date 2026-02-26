@@ -22,8 +22,8 @@ class IncomeScreen extends ConsumerWidget {
         title: GroupSelector(groups: groups, activeGroupId: appSettings.activeGroupId),
         actions: [
           IconButton(
-            icon: const Icon(Icons.visibility_outlined), 
-            onPressed: () => _showSoon(context),
+            icon: Icon(appSettings.isPrivacyMode ? Icons.visibility_off_outlined : Icons.visibility_outlined), 
+            onPressed: () => ref.read(appSettingsProvider.notifier).togglePrivacyMode(),
           ),
           IconButton(
             icon: const Icon(Icons.calendar_month_outlined), 
