@@ -66,5 +66,7 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Profil fotoğrafı gibi görselleri yükleyebilmeniz için fotoğraf galerinize erişim gereklidir.</string>
 </dict>
 </plist>
