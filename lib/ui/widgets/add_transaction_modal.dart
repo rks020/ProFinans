@@ -6,7 +6,9 @@ import '../../data/models/transaction.dart';
 import '../../data/models/enums.dart';
 import '../../data/models/category.dart' as model;
 import '../../providers/app_providers.dart';
+import '../../data/services/receipt_scanner_service.dart';
 import '../theme/app_theme.dart';
+import '../screens/live_receipt_scanner_screen.dart';
 
 class AddTransactionModal extends ConsumerStatefulWidget {
   // Düzenleme için gerekli parametre
@@ -38,6 +40,8 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
   Color _selectedColor = Colors.blue;
   String _selectedCurrency = 'TRY';
   double? _currentExchangeRate;
+
+  bool _isScanning = false;
 
   @override
   void initState() {
@@ -219,6 +223,16 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
                     _selectedCurrency,
                     style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.grey),
                   ),
+                  if (_type == TransactionType.expense && !isEditing) ...[
+                    const SizedBox(width: 16),
+                    _isScanning 
+                      ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))
+                      : IconButton(
+                          icon: const Icon(Icons.document_scanner, color: AppTheme.futureColor),
+                          onPressed: _scanReceipt,
+                          tooltip: 'Fiş Tara',
+                        )
+                  ]
                 ],
               ),
             ),
@@ -1062,6 +1076,74 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
         ],
       ),
     );
+  }
+
+  Future<void> _scanReceipt() async {
+    final amount = await Navigator.push<double?>(
+      context,
+      MaterialPageRoute(builder: (context) => const LiveReceiptScannerScreen()),
+    );
+    
+    if (!mounted) return;
+
+    if (amount != null) {
+      _amountController.text = amount.toStringAsFixed(2).replaceAll('.', ',');
+      
+      // Auto-increment title logic
+      final settings = ref.read(appSettingsProvider);
+      final allTransactions = ref.read(transactionsProvider)
+          .where((t) => t.groupId == settings.activeGroupId);
+          
+      int maxReceiptIndex = 0;
+      for (final t in allTransactions) {
+        if (t.title.startsWith('Market Fişi')) {
+          if (t.title == 'Market Fişi') {
+            if (maxReceiptIndex < 1) maxReceiptIndex = 1;
+          } else {
+            final suffix = t.title.replaceAll('Market Fişi ', '');
+            final num = int.tryParse(suffix);
+            if (num != null && num > maxReceiptIndex) {
+              maxReceiptIndex = num;
+            }
+          }
+        }
+      }
+      
+      _titleController.text = maxReceiptIndex == 0 
+          ? "Market Fişi" 
+          : "Market Fişi ${maxReceiptIndex + 1}";
+
+      showDialog(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          backgroundColor: AppTheme.surfaceColor,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Text('Tutar Onayı', style: TextStyle(color: Colors.white)),
+          content: Text(
+            'Fişten okunan tutar: ${amount.toStringAsFixed(2).replaceAll('.', ',')} ₺\n\nBu tutar doğru mu?',
+            style: const TextStyle(color: Colors.white),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(dialogContext); // Sadece dialogu kapat, formda kalsın
+              },
+              child: const Text('Düzenle / Yanlış', style: TextStyle(color: Colors.grey)),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(dialogContext); // Dialogu kapat
+                // Doğrudan kaydet
+                final settings = ref.read(appSettingsProvider);
+                _save(ref, settings.activeGroupId);
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: AppTheme.futureColor),
+              child: const Text('Doğru, Kaydet', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      );
+    }
   }
 }
 

@@ -68,5 +68,7 @@
 	</array>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Profil fotoğrafı gibi görselleri yükleyebilmeniz için fotoğraf galerinize erişim gereklidir.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Fişlerinizi okuyabilmek için cihazınızın kamerasına erişmemiz gerekiyor.</string>
 </dict>
 </plist>
