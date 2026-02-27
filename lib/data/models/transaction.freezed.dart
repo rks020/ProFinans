@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$Transaction {
 
-@HiveField(0) String get id;@HiveField(1) String get groupId;@HiveField(2) String get title;@HiveField(3) double get amount;@HiveField(4) DateTime get date;@HiveField(5) TransactionType get type;@HiveField(6) String get category;@HiveField(7) int get colorCode;@HiveField(8) bool get isPaid;@HiveField(9) RecurrenceRule get recurrenceRule;@HiveField(10) int? get installmentTotal;@HiveField(11) int? get installmentCurrent;
+@HiveField(0) String get id;@HiveField(1) String get groupId;@HiveField(2) String get title;@HiveField(3) double get amount;@HiveField(4) DateTime get date;@HiveField(5) TransactionType get type;@HiveField(6) String get category;@HiveField(7) int get colorCode;@HiveField(8) bool get isPaid;@HiveField(9) RecurrenceRule get recurrenceRule;@HiveField(10) int? get installmentTotal;@HiveField(11) int? get installmentCurrent;@HiveField(12) String? get currency;@HiveField(13) double? get originalAmount;@HiveField(14) double? get exchangeRate;
 /// Create a copy of Transaction
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $TransactionCopyWith<Transaction> get copyWith => _$TransactionCopyWithImpl<Tran
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Transaction&&(identical(other.id, id) || other.id == id)&&(identical(other.groupId, groupId) || other.groupId == groupId)&&(identical(other.title, title) || other.title == title)&&(identical(other.amount, amount) || other.amount == amount)&&(identical(other.date, date) || other.date == date)&&(identical(other.type, type) || other.type == type)&&(identical(other.category, category) || other.category == category)&&(identical(other.colorCode, colorCode) || other.colorCode == colorCode)&&(identical(other.isPaid, isPaid) || other.isPaid == isPaid)&&(identical(other.recurrenceRule, recurrenceRule) || other.recurrenceRule == recurrenceRule)&&(identical(other.installmentTotal, installmentTotal) || other.installmentTotal == installmentTotal)&&(identical(other.installmentCurrent, installmentCurrent) || other.installmentCurrent == installmentCurrent));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Transaction&&(identical(other.id, id) || other.id == id)&&(identical(other.groupId, groupId) || other.groupId == groupId)&&(identical(other.title, title) || other.title == title)&&(identical(other.amount, amount) || other.amount == amount)&&(identical(other.date, date) || other.date == date)&&(identical(other.type, type) || other.type == type)&&(identical(other.category, category) || other.category == category)&&(identical(other.colorCode, colorCode) || other.colorCode == colorCode)&&(identical(other.isPaid, isPaid) || other.isPaid == isPaid)&&(identical(other.recurrenceRule, recurrenceRule) || other.recurrenceRule == recurrenceRule)&&(identical(other.installmentTotal, installmentTotal) || other.installmentTotal == installmentTotal)&&(identical(other.installmentCurrent, installmentCurrent) || other.installmentCurrent == installmentCurrent)&&(identical(other.currency, currency) || other.currency == currency)&&(identical(other.originalAmount, originalAmount) || other.originalAmount == originalAmount)&&(identical(other.exchangeRate, exchangeRate) || other.exchangeRate == exchangeRate));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,groupId,title,amount,date,type,category,colorCode,isPaid,recurrenceRule,installmentTotal,installmentCurrent);
+int get hashCode => Object.hash(runtimeType,id,groupId,title,amount,date,type,category,colorCode,isPaid,recurrenceRule,installmentTotal,installmentCurrent,currency,originalAmount,exchangeRate);
 
 @override
 String toString() {
-  return 'Transaction(id: $id, groupId: $groupId, title: $title, amount: $amount, date: $date, type: $type, category: $category, colorCode: $colorCode, isPaid: $isPaid, recurrenceRule: $recurrenceRule, installmentTotal: $installmentTotal, installmentCurrent: $installmentCurrent)';
+  return 'Transaction(id: $id, groupId: $groupId, title: $title, amount: $amount, date: $date, type: $type, category: $category, colorCode: $colorCode, isPaid: $isPaid, recurrenceRule: $recurrenceRule, installmentTotal: $installmentTotal, installmentCurrent: $installmentCurrent, currency: $currency, originalAmount: $originalAmount, exchangeRate: $exchangeRate)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $TransactionCopyWith<$Res>  {
   factory $TransactionCopyWith(Transaction value, $Res Function(Transaction) _then) = _$TransactionCopyWithImpl;
 @useResult
 $Res call({
-@HiveField(0) String id,@HiveField(1) String groupId,@HiveField(2) String title,@HiveField(3) double amount,@HiveField(4) DateTime date,@HiveField(5) TransactionType type,@HiveField(6) String category,@HiveField(7) int colorCode,@HiveField(8) bool isPaid,@HiveField(9) RecurrenceRule recurrenceRule,@HiveField(10) int? installmentTotal,@HiveField(11) int? installmentCurrent
+@HiveField(0) String id,@HiveField(1) String groupId,@HiveField(2) String title,@HiveField(3) double amount,@HiveField(4) DateTime date,@HiveField(5) TransactionType type,@HiveField(6) String category,@HiveField(7) int colorCode,@HiveField(8) bool isPaid,@HiveField(9) RecurrenceRule recurrenceRule,@HiveField(10) int? installmentTotal,@HiveField(11) int? installmentCurrent,@HiveField(12) String? currency,@HiveField(13) double? originalAmount,@HiveField(14) double? exchangeRate
 });
 
 
@@ -65,7 +65,7 @@ class _$TransactionCopyWithImpl<$Res>
 
 /// Create a copy of Transaction
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? groupId = null,Object? title = null,Object? amount = null,Object? date = null,Object? type = null,Object? category = null,Object? colorCode = null,Object? isPaid = null,Object? recurrenceRule = null,Object? installmentTotal = freezed,Object? installmentCurrent = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? groupId = null,Object? title = null,Object? amount = null,Object? date = null,Object? type = null,Object? category = null,Object? colorCode = null,Object? isPaid = null,Object? recurrenceRule = null,Object? installmentTotal = freezed,Object? installmentCurrent = freezed,Object? currency = freezed,Object? originalAmount = freezed,Object? exchangeRate = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,groupId: null == groupId ? _self.groupId : groupId // ignore: cast_nullable_to_non_nullable
@@ -79,7 +79,10 @@ as int,isPaid: null == isPaid ? _self.isPaid : isPaid // ignore: cast_nullable_t
 as bool,recurrenceRule: null == recurrenceRule ? _self.recurrenceRule : recurrenceRule // ignore: cast_nullable_to_non_nullable
 as RecurrenceRule,installmentTotal: freezed == installmentTotal ? _self.installmentTotal : installmentTotal // ignore: cast_nullable_to_non_nullable
 as int?,installmentCurrent: freezed == installmentCurrent ? _self.installmentCurrent : installmentCurrent // ignore: cast_nullable_to_non_nullable
-as int?,
+as int?,currency: freezed == currency ? _self.currency : currency // ignore: cast_nullable_to_non_nullable
+as String?,originalAmount: freezed == originalAmount ? _self.originalAmount : originalAmount // ignore: cast_nullable_to_non_nullable
+as double?,exchangeRate: freezed == exchangeRate ? _self.exchangeRate : exchangeRate // ignore: cast_nullable_to_non_nullable
+as double?,
   ));
 }
 
@@ -164,10 +167,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@HiveField(0)  String id, @HiveField(1)  String groupId, @HiveField(2)  String title, @HiveField(3)  double amount, @HiveField(4)  DateTime date, @HiveField(5)  TransactionType type, @HiveField(6)  String category, @HiveField(7)  int colorCode, @HiveField(8)  bool isPaid, @HiveField(9)  RecurrenceRule recurrenceRule, @HiveField(10)  int? installmentTotal, @HiveField(11)  int? installmentCurrent)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@HiveField(0)  String id, @HiveField(1)  String groupId, @HiveField(2)  String title, @HiveField(3)  double amount, @HiveField(4)  DateTime date, @HiveField(5)  TransactionType type, @HiveField(6)  String category, @HiveField(7)  int colorCode, @HiveField(8)  bool isPaid, @HiveField(9)  RecurrenceRule recurrenceRule, @HiveField(10)  int? installmentTotal, @HiveField(11)  int? installmentCurrent, @HiveField(12)  String? currency, @HiveField(13)  double? originalAmount, @HiveField(14)  double? exchangeRate)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Transaction() when $default != null:
-return $default(_that.id,_that.groupId,_that.title,_that.amount,_that.date,_that.type,_that.category,_that.colorCode,_that.isPaid,_that.recurrenceRule,_that.installmentTotal,_that.installmentCurrent);case _:
+return $default(_that.id,_that.groupId,_that.title,_that.amount,_that.date,_that.type,_that.category,_that.colorCode,_that.isPaid,_that.recurrenceRule,_that.installmentTotal,_that.installmentCurrent,_that.currency,_that.originalAmount,_that.exchangeRate);case _:
   return orElse();
 
 }
@@ -185,10 +188,10 @@ return $default(_that.id,_that.groupId,_that.title,_that.amount,_that.date,_that
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@HiveField(0)  String id, @HiveField(1)  String groupId, @HiveField(2)  String title, @HiveField(3)  double amount, @HiveField(4)  DateTime date, @HiveField(5)  TransactionType type, @HiveField(6)  String category, @HiveField(7)  int colorCode, @HiveField(8)  bool isPaid, @HiveField(9)  RecurrenceRule recurrenceRule, @HiveField(10)  int? installmentTotal, @HiveField(11)  int? installmentCurrent)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@HiveField(0)  String id, @HiveField(1)  String groupId, @HiveField(2)  String title, @HiveField(3)  double amount, @HiveField(4)  DateTime date, @HiveField(5)  TransactionType type, @HiveField(6)  String category, @HiveField(7)  int colorCode, @HiveField(8)  bool isPaid, @HiveField(9)  RecurrenceRule recurrenceRule, @HiveField(10)  int? installmentTotal, @HiveField(11)  int? installmentCurrent, @HiveField(12)  String? currency, @HiveField(13)  double? originalAmount, @HiveField(14)  double? exchangeRate)  $default,) {final _that = this;
 switch (_that) {
 case _Transaction():
-return $default(_that.id,_that.groupId,_that.title,_that.amount,_that.date,_that.type,_that.category,_that.colorCode,_that.isPaid,_that.recurrenceRule,_that.installmentTotal,_that.installmentCurrent);case _:
+return $default(_that.id,_that.groupId,_that.title,_that.amount,_that.date,_that.type,_that.category,_that.colorCode,_that.isPaid,_that.recurrenceRule,_that.installmentTotal,_that.installmentCurrent,_that.currency,_that.originalAmount,_that.exchangeRate);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -205,10 +208,10 @@ return $default(_that.id,_that.groupId,_that.title,_that.amount,_that.date,_that
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@HiveField(0)  String id, @HiveField(1)  String groupId, @HiveField(2)  String title, @HiveField(3)  double amount, @HiveField(4)  DateTime date, @HiveField(5)  TransactionType type, @HiveField(6)  String category, @HiveField(7)  int colorCode, @HiveField(8)  bool isPaid, @HiveField(9)  RecurrenceRule recurrenceRule, @HiveField(10)  int? installmentTotal, @HiveField(11)  int? installmentCurrent)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@HiveField(0)  String id, @HiveField(1)  String groupId, @HiveField(2)  String title, @HiveField(3)  double amount, @HiveField(4)  DateTime date, @HiveField(5)  TransactionType type, @HiveField(6)  String category, @HiveField(7)  int colorCode, @HiveField(8)  bool isPaid, @HiveField(9)  RecurrenceRule recurrenceRule, @HiveField(10)  int? installmentTotal, @HiveField(11)  int? installmentCurrent, @HiveField(12)  String? currency, @HiveField(13)  double? originalAmount, @HiveField(14)  double? exchangeRate)?  $default,) {final _that = this;
 switch (_that) {
 case _Transaction() when $default != null:
-return $default(_that.id,_that.groupId,_that.title,_that.amount,_that.date,_that.type,_that.category,_that.colorCode,_that.isPaid,_that.recurrenceRule,_that.installmentTotal,_that.installmentCurrent);case _:
+return $default(_that.id,_that.groupId,_that.title,_that.amount,_that.date,_that.type,_that.category,_that.colorCode,_that.isPaid,_that.recurrenceRule,_that.installmentTotal,_that.installmentCurrent,_that.currency,_that.originalAmount,_that.exchangeRate);case _:
   return null;
 
 }
@@ -220,7 +223,7 @@ return $default(_that.id,_that.groupId,_that.title,_that.amount,_that.date,_that
 @JsonSerializable()
 
 class _Transaction extends Transaction {
-   _Transaction({@HiveField(0) required this.id, @HiveField(1) required this.groupId, @HiveField(2) required this.title, @HiveField(3) required this.amount, @HiveField(4) required this.date, @HiveField(5) required this.type, @HiveField(6) required this.category, @HiveField(7) required this.colorCode, @HiveField(8) this.isPaid = false, @HiveField(9) this.recurrenceRule = RecurrenceRule.none, @HiveField(10) this.installmentTotal, @HiveField(11) this.installmentCurrent}): super._();
+   _Transaction({@HiveField(0) required this.id, @HiveField(1) required this.groupId, @HiveField(2) required this.title, @HiveField(3) required this.amount, @HiveField(4) required this.date, @HiveField(5) required this.type, @HiveField(6) required this.category, @HiveField(7) required this.colorCode, @HiveField(8) this.isPaid = false, @HiveField(9) this.recurrenceRule = RecurrenceRule.none, @HiveField(10) this.installmentTotal, @HiveField(11) this.installmentCurrent, @HiveField(12) this.currency, @HiveField(13) this.originalAmount, @HiveField(14) this.exchangeRate}): super._();
   factory _Transaction.fromJson(Map<String, dynamic> json) => _$TransactionFromJson(json);
 
 @override@HiveField(0) final  String id;
@@ -235,6 +238,9 @@ class _Transaction extends Transaction {
 @override@JsonKey()@HiveField(9) final  RecurrenceRule recurrenceRule;
 @override@HiveField(10) final  int? installmentTotal;
 @override@HiveField(11) final  int? installmentCurrent;
+@override@HiveField(12) final  String? currency;
+@override@HiveField(13) final  double? originalAmount;
+@override@HiveField(14) final  double? exchangeRate;
 
 /// Create a copy of Transaction
 /// with the given fields replaced by the non-null parameter values.
@@ -249,16 +255,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Transaction&&(identical(other.id, id) || other.id == id)&&(identical(other.groupId, groupId) || other.groupId == groupId)&&(identical(other.title, title) || other.title == title)&&(identical(other.amount, amount) || other.amount == amount)&&(identical(other.date, date) || other.date == date)&&(identical(other.type, type) || other.type == type)&&(identical(other.category, category) || other.category == category)&&(identical(other.colorCode, colorCode) || other.colorCode == colorCode)&&(identical(other.isPaid, isPaid) || other.isPaid == isPaid)&&(identical(other.recurrenceRule, recurrenceRule) || other.recurrenceRule == recurrenceRule)&&(identical(other.installmentTotal, installmentTotal) || other.installmentTotal == installmentTotal)&&(identical(other.installmentCurrent, installmentCurrent) || other.installmentCurrent == installmentCurrent));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Transaction&&(identical(other.id, id) || other.id == id)&&(identical(other.groupId, groupId) || other.groupId == groupId)&&(identical(other.title, title) || other.title == title)&&(identical(other.amount, amount) || other.amount == amount)&&(identical(other.date, date) || other.date == date)&&(identical(other.type, type) || other.type == type)&&(identical(other.category, category) || other.category == category)&&(identical(other.colorCode, colorCode) || other.colorCode == colorCode)&&(identical(other.isPaid, isPaid) || other.isPaid == isPaid)&&(identical(other.recurrenceRule, recurrenceRule) || other.recurrenceRule == recurrenceRule)&&(identical(other.installmentTotal, installmentTotal) || other.installmentTotal == installmentTotal)&&(identical(other.installmentCurrent, installmentCurrent) || other.installmentCurrent == installmentCurrent)&&(identical(other.currency, currency) || other.currency == currency)&&(identical(other.originalAmount, originalAmount) || other.originalAmount == originalAmount)&&(identical(other.exchangeRate, exchangeRate) || other.exchangeRate == exchangeRate));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,groupId,title,amount,date,type,category,colorCode,isPaid,recurrenceRule,installmentTotal,installmentCurrent);
+int get hashCode => Object.hash(runtimeType,id,groupId,title,amount,date,type,category,colorCode,isPaid,recurrenceRule,installmentTotal,installmentCurrent,currency,originalAmount,exchangeRate);
 
 @override
 String toString() {
-  return 'Transaction(id: $id, groupId: $groupId, title: $title, amount: $amount, date: $date, type: $type, category: $category, colorCode: $colorCode, isPaid: $isPaid, recurrenceRule: $recurrenceRule, installmentTotal: $installmentTotal, installmentCurrent: $installmentCurrent)';
+  return 'Transaction(id: $id, groupId: $groupId, title: $title, amount: $amount, date: $date, type: $type, category: $category, colorCode: $colorCode, isPaid: $isPaid, recurrenceRule: $recurrenceRule, installmentTotal: $installmentTotal, installmentCurrent: $installmentCurrent, currency: $currency, originalAmount: $originalAmount, exchangeRate: $exchangeRate)';
 }
 
 
@@ -269,7 +275,7 @@ abstract mixin class _$TransactionCopyWith<$Res> implements $TransactionCopyWith
   factory _$TransactionCopyWith(_Transaction value, $Res Function(_Transaction) _then) = __$TransactionCopyWithImpl;
 @override @useResult
 $Res call({
-@HiveField(0) String id,@HiveField(1) String groupId,@HiveField(2) String title,@HiveField(3) double amount,@HiveField(4) DateTime date,@HiveField(5) TransactionType type,@HiveField(6) String category,@HiveField(7) int colorCode,@HiveField(8) bool isPaid,@HiveField(9) RecurrenceRule recurrenceRule,@HiveField(10) int? installmentTotal,@HiveField(11) int? installmentCurrent
+@HiveField(0) String id,@HiveField(1) String groupId,@HiveField(2) String title,@HiveField(3) double amount,@HiveField(4) DateTime date,@HiveField(5) TransactionType type,@HiveField(6) String category,@HiveField(7) int colorCode,@HiveField(8) bool isPaid,@HiveField(9) RecurrenceRule recurrenceRule,@HiveField(10) int? installmentTotal,@HiveField(11) int? installmentCurrent,@HiveField(12) String? currency,@HiveField(13) double? originalAmount,@HiveField(14) double? exchangeRate
 });
 
 
@@ -286,7 +292,7 @@ class __$TransactionCopyWithImpl<$Res>
 
 /// Create a copy of Transaction
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? groupId = null,Object? title = null,Object? amount = null,Object? date = null,Object? type = null,Object? category = null,Object? colorCode = null,Object? isPaid = null,Object? recurrenceRule = null,Object? installmentTotal = freezed,Object? installmentCurrent = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? groupId = null,Object? title = null,Object? amount = null,Object? date = null,Object? type = null,Object? category = null,Object? colorCode = null,Object? isPaid = null,Object? recurrenceRule = null,Object? installmentTotal = freezed,Object? installmentCurrent = freezed,Object? currency = freezed,Object? originalAmount = freezed,Object? exchangeRate = freezed,}) {
   return _then(_Transaction(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,groupId: null == groupId ? _self.groupId : groupId // ignore: cast_nullable_to_non_nullable
@@ -300,7 +306,10 @@ as int,isPaid: null == isPaid ? _self.isPaid : isPaid // ignore: cast_nullable_t
 as bool,recurrenceRule: null == recurrenceRule ? _self.recurrenceRule : recurrenceRule // ignore: cast_nullable_to_non_nullable
 as RecurrenceRule,installmentTotal: freezed == installmentTotal ? _self.installmentTotal : installmentTotal // ignore: cast_nullable_to_non_nullable
 as int?,installmentCurrent: freezed == installmentCurrent ? _self.installmentCurrent : installmentCurrent // ignore: cast_nullable_to_non_nullable
-as int?,
+as int?,currency: freezed == currency ? _self.currency : currency // ignore: cast_nullable_to_non_nullable
+as String?,originalAmount: freezed == originalAmount ? _self.originalAmount : originalAmount // ignore: cast_nullable_to_non_nullable
+as double?,exchangeRate: freezed == exchangeRate ? _self.exchangeRate : exchangeRate // ignore: cast_nullable_to_non_nullable
+as double?,
   ));
 }
 

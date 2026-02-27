@@ -5,9 +5,16 @@ import '../data/models/app_group.dart';
 import '../data/models/transaction.dart';
 import '../data/models/enums.dart';
 import '../data/models/category.dart';
+import '../data/services/currency_service.dart';
 import 'repository_providers.dart';
 
 part 'app_providers.g.dart';
+
+@riverpod
+Future<Map<String, CurrencyRate>> currencyRates(Ref ref) async {
+  final service = CurrencyService();
+  return service.fetchRates();
+}
 
 @riverpod
 class AppSettingsNotifier extends _$AppSettingsNotifier {

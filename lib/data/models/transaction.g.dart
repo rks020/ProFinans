@@ -31,13 +31,16 @@ class TransactionAdapter extends TypeAdapter<Transaction> {
           : fields[9] as RecurrenceRule,
       installmentTotal: (fields[10] as num?)?.toInt(),
       installmentCurrent: (fields[11] as num?)?.toInt(),
+      currency: fields[12] as String?,
+      originalAmount: (fields[13] as num?)?.toDouble(),
+      exchangeRate: (fields[14] as num?)?.toDouble(),
     );
   }
 
   @override
   void write(BinaryWriter writer, Transaction obj) {
     writer
-      ..writeByte(12)
+      ..writeByte(15)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -61,7 +64,13 @@ class TransactionAdapter extends TypeAdapter<Transaction> {
       ..writeByte(10)
       ..write(obj.installmentTotal)
       ..writeByte(11)
-      ..write(obj.installmentCurrent);
+      ..write(obj.installmentCurrent)
+      ..writeByte(12)
+      ..write(obj.currency)
+      ..writeByte(13)
+      ..write(obj.originalAmount)
+      ..writeByte(14)
+      ..write(obj.exchangeRate);
   }
 
   @override
@@ -94,6 +103,9 @@ _Transaction _$TransactionFromJson(Map<String, dynamic> json) => _Transaction(
       RecurrenceRule.none,
   installmentTotal: (json['installmentTotal'] as num?)?.toInt(),
   installmentCurrent: (json['installmentCurrent'] as num?)?.toInt(),
+  currency: json['currency'] as String?,
+  originalAmount: (json['originalAmount'] as num?)?.toDouble(),
+  exchangeRate: (json['exchangeRate'] as num?)?.toDouble(),
 );
 
 Map<String, dynamic> _$TransactionToJson(_Transaction instance) =>
@@ -110,6 +122,9 @@ Map<String, dynamic> _$TransactionToJson(_Transaction instance) =>
       'recurrenceRule': _$RecurrenceRuleEnumMap[instance.recurrenceRule]!,
       'installmentTotal': instance.installmentTotal,
       'installmentCurrent': instance.installmentCurrent,
+      'currency': instance.currency,
+      'originalAmount': instance.originalAmount,
+      'exchangeRate': instance.exchangeRate,
     };
 
 const _$TransactionTypeEnumMap = {

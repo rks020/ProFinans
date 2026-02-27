@@ -36,6 +36,8 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
   DateTime _endDate = DateTime.now();
   String _selectedCategory = 'Genel';
   Color _selectedColor = Colors.blue;
+  String _selectedCurrency = 'TRY';
+  double? _currentExchangeRate;
 
   @override
   void initState() {
@@ -144,6 +146,51 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
             ),
             const SizedBox(height: 20),
 
+            // Provider'dan kurları çek
+            ...[
+              ref.watch(currencyRatesProvider).when(
+                data: (rates) {
+                  return Column(
+                     children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: ['TRY', 'USD', 'EUR'].map((c) {
+                            final isSelected = _selectedCurrency == c;
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                              child: ChoiceChip(
+                                label: Text(c, style: TextStyle(color: isSelected ? Colors.white : Colors.grey)),
+                                selected: isSelected,
+                                selectedColor: themeColor,
+                                backgroundColor: AppTheme.surfaceColor,
+                                onSelected: isEditing ? null : (selected) {
+                                  if (selected) {
+                                    setState(() {
+                                      _selectedCurrency = c;
+                                      _currentExchangeRate = rates[c]?.buying ?? 1.0;
+                                    });
+                                  }
+                                },
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                        if (_selectedCurrency != 'TRY') ...[
+                           const SizedBox(height: 8),
+                           Text(
+                             'Kur: 1 $_selectedCurrency = ${_currentExchangeRate?.toStringAsFixed(4) ?? "?"} TRY',
+                             style: const TextStyle(color: Colors.grey, fontSize: 12),
+                           ),
+                        ]
+                     ]
+                  );
+                },
+                loading: () => const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                error: (e, s) => Text('Kurlar alınamadı', style: TextStyle(color: AppTheme.expenseColor)),
+              )
+            ],
+            const SizedBox(height: 20),
+
             // Taksit (Sadece Giderse ve Yeni Eklemedeyse)
             // Tutar Alanı - Currency Badge her zaman görünür olacak
             // Tutar Alanı - Currency Badge her zaman görünür olacak
@@ -169,7 +216,7 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    settings.selectedCurrency,
+                    _selectedCurrency,
                     style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.grey),
                   ),
                 ],
@@ -738,7 +785,13 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
     }
 
     final cleanAmount = _amountController.text.replaceAll(',', '.');
-    final amount = double.tryParse(cleanAmount) ?? 0;
+    final enteredAmount = double.tryParse(cleanAmount) ?? 0;
+    
+    // Kur hesabı yap (eğer TRY değilse)
+    final double exchangeRate = _currentExchangeRate ?? 1.0;
+    final double amount = _selectedCurrency == 'TRY' ? enteredAmount : enteredAmount * exchangeRate;
+    final double originalAmount = enteredAmount;
+
     final isTitleEmpty = _titleController.text.trim().isEmpty;
     final isAmountInvalid = amount <= 0;
 
@@ -893,6 +946,9 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
         colorCode: _selectedColor.value,
         isPaid: false,
         recurrenceRule: _recurrence,
+        currency: _selectedCurrency,
+        originalAmount: originalAmount,
+        exchangeRate: exchangeRate,
       ));
     }
 
@@ -911,6 +967,9 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
             recurrenceRule: RecurrenceRule.none,
             installmentTotal: _installments,
             installmentCurrent: i + 1,
+            currency: _selectedCurrency,
+            originalAmount: originalAmount / _installments!,
+            exchangeRate: exchangeRate,
           ));
        }
     } else if (transactionsToSave.isEmpty) { // Tek seferlik işlem veya Mevcut işlem güncelleme
@@ -930,6 +989,9 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
           colorCode: _selectedColor.value,
           isPaid: false,
           recurrenceRule: _recurrence,
+          currency: _selectedCurrency,
+          originalAmount: originalAmount,
+          exchangeRate: exchangeRate,
        ));
     }
 

@@ -537,28 +537,55 @@ class _BottomSummary extends ConsumerWidget {
     final remainingStr = isPrivacyMode ? '***₺' : format.format(remaining).replaceAll('₺', '') + '₺';
     final investmentStr = isPrivacyMode ? '***₺' : format.format(investmentTotal).replaceAll('₺', '') + '₺';
 
+    final ratesAsync = ref.watch(currencyRatesProvider);
+    final usdRate = ratesAsync.value?['USD']?.buying;
+    final eurRate = ratesAsync.value?['EUR']?.buying;
+
+    Widget buildCurrencyEquivalents(double amountInTry) {
+      if (usdRate == null || eurRate == null || amountInTry <= 0 || isPrivacyMode) return const SizedBox.shrink();
+      
+      final usdAmount = amountInTry / usdRate;
+      final eurAmount = amountInTry / eurRate;
+      final usdFormat = NumberFormat.currency(symbol: '\$', decimalDigits: 0, customPattern: '\$#,##0');
+      final eurFormat = NumberFormat.currency(symbol: '€', decimalDigits: 0, customPattern: '€#,##0');
+      
+      return Padding(
+        padding: const EdgeInsets.only(top: 4.0),
+        child: Text(
+          '${usdFormat.format(usdAmount)} • ${eurFormat.format(eurAmount)}',
+          style: const TextStyle(color: Colors.grey, fontSize: 11),
+        ),
+      );
+    }
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
             const Text('Toplam Gider', style: TextStyle(color: Colors.grey, fontSize: 13)),
             const SizedBox(height: 4),
             Text(totalStr, style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
+            buildCurrencyEquivalents(total),
           ],
         ),
         Column(
           crossAxisAlignment: CrossAxisAlignment.end,
+          mainAxisSize: MainAxisSize.min,
           children: [
             const Text('Kalan Gider', style: TextStyle(color: Colors.grey, fontSize: 13)),
             const SizedBox(height: 4),
             Text(remainingStr, style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
+            buildCurrencyEquivalents(remaining),
           ],
         ),
         if (investmentTotal > 0)
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
+            mainAxisSize: MainAxisSize.min,
             children: [
               const Text('Yatırım', style: TextStyle(color: Colors.grey, fontSize: 13)),
               const SizedBox(height: 4),
@@ -566,6 +593,7 @@ class _BottomSummary extends ConsumerWidget {
                 investmentStr, 
                 style: const TextStyle(color: Color(0xFFFFD700), fontSize: 22, fontWeight: FontWeight.bold)
               ),
+              buildCurrencyEquivalents(investmentTotal),
             ],
           ),
       ],

@@ -23,6 +23,9 @@ abstract class Transaction extends HiveObject with _$Transaction {
     @HiveField(9) @Default(RecurrenceRule.none) RecurrenceRule recurrenceRule,
     @HiveField(10) int? installmentTotal,
     @HiveField(11) int? installmentCurrent,
+    @HiveField(12) String? currency,
+    @HiveField(13) double? originalAmount,
+    @HiveField(14) double? exchangeRate,
   }) = _Transaction;
 
   factory Transaction.fromJson(Map<String, dynamic> json) => _$TransactionFromJson(json);

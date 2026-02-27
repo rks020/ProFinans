@@ -9,6 +9,47 @@ part of 'app_providers.dart';
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
 
+@ProviderFor(currencyRates)
+final currencyRatesProvider = CurrencyRatesProvider._();
+
+final class CurrencyRatesProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<Map<String, CurrencyRate>>,
+          Map<String, CurrencyRate>,
+          FutureOr<Map<String, CurrencyRate>>
+        >
+    with
+        $FutureModifier<Map<String, CurrencyRate>>,
+        $FutureProvider<Map<String, CurrencyRate>> {
+  CurrencyRatesProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'currencyRatesProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$currencyRatesHash();
+
+  @$internal
+  @override
+  $FutureProviderElement<Map<String, CurrencyRate>> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<Map<String, CurrencyRate>> create(Ref ref) {
+    return currencyRates(ref);
+  }
+}
+
+String _$currencyRatesHash() => r'9b7536d04e9f2f304494891a88aad2fdb48c26b5';
+
 @ProviderFor(AppSettingsNotifier)
 final appSettingsProvider = AppSettingsNotifierProvider._();
 
@@ -42,7 +83,7 @@ final class AppSettingsNotifierProvider
 }
 
 String _$appSettingsNotifierHash() =>
-    r'0984a5cccf164d871ae8bb0d31cdbae2fa61c61a';
+    r'8b30e308c125f2d77f9a52a2ac7c7c260c484b04';
 
 abstract class _$AppSettingsNotifier extends $Notifier<AppSettings> {
   AppSettings build();
@@ -145,7 +186,7 @@ final class GroupsNotifierProvider
   }
 }
 
-String _$groupsNotifierHash() => r'54e52a562bcf8cb97ebab7352809a57b14e7dc86';
+String _$groupsNotifierHash() => r'55eb356e718038da6d24463e48316f79d173d599';
 
 abstract class _$GroupsNotifier extends $Notifier<List<AppGroup>> {
   List<AppGroup> build();
@@ -198,7 +239,7 @@ final class TransactionsNotifierProvider
 }
 
 String _$transactionsNotifierHash() =>
-    r'e5d85bcd1a25d2bca2833f67eea9526095faca53';
+    r'f85581494b49ffe50abdf1e5e5d7c6d062b51bde';
 
 abstract class _$TransactionsNotifier extends $Notifier<List<Transaction>> {
   List<Transaction> build();
@@ -304,7 +345,7 @@ final class CategoriesNotifierProvider
 }
 
 String _$categoriesNotifierHash() =>
-    r'7458b2e7d8869557c3fdd17d78ba1df4c6a3ecf1';
+    r'c09a6b91e2082d28a032df61d635109e55ae4de0';
 
 abstract class _$CategoriesNotifier extends $Notifier<List<Category>> {
   List<Category> build();
