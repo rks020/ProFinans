@@ -306,6 +306,7 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
   }
 
   Widget _buildTrendView(List<Transaction> transactions) {
+    final allTransactions = ref.watch(allGroupTransactionsProvider);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -313,7 +314,7 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
         const SizedBox(height: 16),
         SizedBox(
           height: 300,
-          child: _TrendChart(transactions: transactions),
+          child: _TrendChart(transactions: allTransactions),
         ),
       ],
     );

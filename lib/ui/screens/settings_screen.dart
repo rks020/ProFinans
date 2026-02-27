@@ -10,6 +10,7 @@ import '../../providers/app_providers.dart';
 import '../../data/models/app_group.dart';
 import '../../data/models/app_settings.dart';
 import '../../data/models/transaction.dart';
+import '../../data/models/category.dart';
 import '../theme/app_theme.dart';
 import 'yearly_analysis_screen.dart';
 import 'pin_screen.dart';
@@ -140,10 +141,12 @@ class SettingsScreen extends ConsumerWidget {
     final groups = ref.read(groupsProvider);
     final transactions = ref.read(transactionsProvider);
     final settings = ref.read(appSettingsProvider);
+    final categories = ref.read(categoriesProvider);
 
     final data = {
       'groups': groups.map((g) => g.toJson()).toList(),
       'transactions': transactions.map((t) => t.toJson()).toList(),
+      'categories': categories.map((c) => c.toJson()).toList(),
       'settings': settings.toJson(),
       'exported_at': DateTime.now().toIso8601String(),
     };
@@ -206,6 +209,15 @@ class SettingsScreen extends ConsumerWidget {
               .toList()
               .cast<Transaction>();
           await ref.read(transactionsProvider.notifier).restoreTransactions(transactionsList);
+        }
+
+        // 4. Kategorileri Yükle
+        if (data.containsKey('categories')) {
+          final categoriesList = (data['categories'] as List)
+              .map((c) => Category.fromJson(c))
+              .toList()
+              .cast<Category>();
+          await ref.read(categoriesProvider.notifier).restoreCategories(categoriesList);
         }
 
         if (context.mounted) {

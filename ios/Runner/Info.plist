@@ -70,5 +70,9 @@
 	<string>Profil fotoğrafı gibi görselleri yükleyebilmeniz için fotoğraf galerinize erişim gereklidir.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Fişlerinizi okuyabilmek için cihazınızın kamerasına erişmemiz gerekiyor.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Sesli olarak işlem ekleyebilmeniz için konuşma tanıma izni gereklidir.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Sesli olarak işlem ekleyebilmeniz için mikrofon erişimi gereklidir.</string>
 </dict>
 </plist>

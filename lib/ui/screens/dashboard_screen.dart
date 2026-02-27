@@ -220,10 +220,10 @@ class _VerticalSummaryCardState extends ConsumerState<VerticalSummaryCard> {
     final format = NumberFormat.currency(symbol: '₺', decimalDigits: 0);
     final amountStr = isPrivacyMode ? '***₺' : format.format(amount).replaceAll('₺', '') + '₺';
 
-    // Grouping logic by title
+    // Grouping logic by category
     final groupedTransactions = <String, List<Transaction>>{};
     for (var t in widget.transactions) {
-      final key = t.title.trim();
+      final key = (t.category ?? 'Diğer').trim();
       if (!groupedTransactions.containsKey(key)) {
         groupedTransactions[key] = [];
       }
@@ -347,58 +347,70 @@ class _VerticalSummaryCardState extends ConsumerState<VerticalSummaryCard> {
     final format = NumberFormat.currency(symbol: '₺', decimalDigits: 0);
     final dateStr = DateFormat('dd MMM', 'tr_TR').format(t.date);
     final isPrivacyMode = ref.watch(appSettingsProvider).isPrivacyMode;
+    final isNewlyAdded = ref.watch(lastAddedTransactionIdProvider) == t.id;
 
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 4),
-      child: Dismissible(
-        key: Key(t.id),
-        direction: DismissDirection.horizontal,
-        background: Container(
-          decoration: BoxDecoration(
-            color: Colors.blue.withOpacity(0.2),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          alignment: Alignment.centerLeft,
-          padding: const EdgeInsets.only(left: 20),
-          child: const Icon(Icons.edit, color: Colors.blue),
-        ),
-        secondaryBackground: Container(
-          decoration: BoxDecoration(
-            color: Colors.red.withOpacity(0.2),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          alignment: Alignment.centerRight,
-          padding: const EdgeInsets.only(right: 20),
-          child: const Icon(Icons.delete, color: Colors.red),
-        ),
-        confirmDismiss: (direction) async {
-          if (direction == DismissDirection.startToEnd) {
-            _openEditModal(context, t);
-            return false;
-          } else {
-            final result = await _showDeleteConfirmation(context);
-            if (result == 'bulk') {
-              ref.read(transactionsProvider.notifier).deleteBulkTransactions(t);
-              return false; // Don't let dismissible handle it normally
-            }
-            return result == 'single';
-          }
-        },
-        onDismissed: (_) {
-          // Bu sadece 'single' onaylandığında çalışır
-          ref.read(transactionsProvider.notifier).deleteTransaction(t.id);
-        },
-        child: Container(
-          padding: const EdgeInsets.all(16.0),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.05),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.white.withOpacity(0.05)),
-          ),
-          child: Row(
-            children: [
-              // Kategori Renk İndikatörü
-              Container(
+    return TweenAnimationBuilder<double>(
+      key: ValueKey('${t.id}_$isNewlyAdded'),
+      tween: Tween<double>(begin: isNewlyAdded ? 1.0 : 0.0, end: 0.0),
+      duration: const Duration(milliseconds: 1500),
+      builder: (context, animValue, child) {
+        final bgColor = Color.lerp(
+          Colors.white.withOpacity(0.05), 
+          AppTheme.futureColor.withOpacity(0.8), 
+          animValue
+        ) ?? Colors.white.withOpacity(0.05);
+
+        return Container(
+          margin: const EdgeInsets.symmetric(vertical: 4),
+          child: Dismissible(
+            key: Key('dismiss_${t.id}'),
+            direction: DismissDirection.horizontal,
+            background: Container(
+              decoration: BoxDecoration(
+                color: Colors.blue.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              alignment: Alignment.centerLeft,
+              padding: const EdgeInsets.only(left: 20),
+              child: const Icon(Icons.edit, color: Colors.blue),
+            ),
+            secondaryBackground: Container(
+              decoration: BoxDecoration(
+                color: Colors.red.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              alignment: Alignment.centerRight,
+              padding: const EdgeInsets.only(right: 20),
+              child: const Icon(Icons.delete, color: Colors.red),
+            ),
+            confirmDismiss: (direction) async {
+              if (direction == DismissDirection.startToEnd) {
+                _openEditModal(context, t);
+                return false;
+              } else {
+                final result = await _showDeleteConfirmation(context);
+                if (result == 'bulk') {
+                  ref.read(transactionsProvider.notifier).deleteBulkTransactions(t);
+                  return false; // Don't let dismissible handle it normally
+                }
+                return result == 'single';
+              }
+            },
+            onDismissed: (_) {
+              // Bu sadece 'single' onaylandığında çalışır
+              ref.read(transactionsProvider.notifier).deleteTransaction(t.id);
+            },
+            child: Container(
+              padding: const EdgeInsets.all(16.0),
+              decoration: BoxDecoration(
+                color: bgColor,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.white.withOpacity(0.05)),
+              ),
+              child: Row(
+                children: [
+                  // Kategori Renk İndikatörü
+                  Container(
                 width: 4,
                 height: 24,
                 decoration: BoxDecoration(
@@ -461,6 +473,8 @@ class _VerticalSummaryCardState extends ConsumerState<VerticalSummaryCard> {
           ),
         ),
       ),
+    );
+      },
     );
   }
 

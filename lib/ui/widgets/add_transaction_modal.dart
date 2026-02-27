@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import 'package:intl/intl.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
 import '../../data/models/transaction.dart';
 import '../../data/models/enums.dart';
 import '../../data/models/category.dart' as model;
@@ -43,9 +44,16 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
 
   bool _isScanning = false;
 
+  late stt.SpeechToText _speech;
+  bool _isListening = false;
+  bool _hasShownDialog = false; // Prevents double dialog from onStatus firing twice
+  String _recognizedText = '';
+
   @override
   void initState() {
     super.initState();
+    _speech = stt.SpeechToText();
+    _initSpeech();
     // EĞER DÜZENLEME MODUNDAYSA VERİLERİ DOLDUR
     if (widget.transactionToEdit != null) {
       final t = widget.transactionToEdit!;
@@ -224,14 +232,25 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
                     style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.grey),
                   ),
                   if (_type == TransactionType.expense && !isEditing) ...[
-                    const SizedBox(width: 16),
+                    const SizedBox(width: 8),
                     _isScanning 
                       ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))
                       : IconButton(
                           icon: const Icon(Icons.document_scanner, color: AppTheme.futureColor),
                           onPressed: _scanReceipt,
                           tooltip: 'Fiş Tara',
-                        )
+                        ),
+                    const SizedBox(width: 4),
+                  ],
+                  if (!isEditing) ...[
+                    IconButton(
+                        icon: Icon(
+                          _isListening ? Icons.mic : Icons.mic_none, 
+                          color: _isListening ? Colors.redAccent : AppTheme.futureColor
+                        ),
+                        onPressed: _listen,
+                        tooltip: _isListening ? 'Dinleniyor...' : 'Sesle Ekle',
+                    )
                   ]
                 ],
               ),
@@ -1010,6 +1029,19 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
     }
 
     ref.read(transactionsProvider.notifier).addTransactions(transactionsToSave);
+    
+    // Gider (veya Yatırım) ise 0. sekme (Dashboard), Gelir ise 2. sekme (Income)
+    if (_type == TransactionType.income) {
+      ref.read(mainScreenIndexProvider.notifier).setIndex(2);
+    } else {
+      ref.read(mainScreenIndexProvider.notifier).setIndex(0);
+    }
+    
+    // Animate the newly added transaction
+    if (transactionsToSave.isNotEmpty) {
+      ref.read(lastAddedTransactionIdProvider.notifier).setId(transactionsToSave.first.id);
+    }
+
     Navigator.pop(context);
   }
 
@@ -1089,6 +1121,11 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
     if (amount != null) {
       _amountController.text = amount.toStringAsFixed(2).replaceAll('.', ',');
       
+      // İşlem Türünü Otomatik "Gider" Yap
+      setState(() {
+        _type = TransactionType.expense;
+      });
+
       // Auto-increment title logic
       final settings = ref.read(appSettingsProvider);
       final allTransactions = ref.read(transactionsProvider)
@@ -1113,14 +1150,30 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
           ? "Market Fişi" 
           : "Market Fişi ${maxReceiptIndex + 1}";
 
+      // Fişlerde varsayılan kategoriyi "Market" yapıyoruz
+      final categories = ref.read(categoriesProvider);
+      final marketCat = categories.firstWhere(
+        (c) => c.name.toLowerCase() == 'market', 
+        orElse: () => categories.first
+      );
+      
+      setState(() {
+        _selectedCategory = marketCat.name;
+        _selectedColor = Color(marketCat.colorCode);
+      });
+
       showDialog(
         context: context,
+        barrierDismissible: false,
         builder: (dialogContext) => AlertDialog(
           backgroundColor: AppTheme.surfaceColor,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: const Text('Tutar Onayı', style: TextStyle(color: Colors.white)),
+          title: const Text('Fiş Onayı', style: TextStyle(color: Colors.white)),
           content: Text(
-            'Fişten okunan tutar: ${amount.toStringAsFixed(2).replaceAll('.', ',')} ₺\n\nBu tutar doğru mu?',
+            'Tutar: ${_amountController.text} ₺\n'
+            'Başlık: ${_titleController.text}\n'
+            'Kategori: $_selectedCategory\n\n'
+            'Bu gider işlemini kaydetmek istiyor musunuz?',
             style: const TextStyle(color: Colors.white),
           ),
           actions: [
@@ -1132,10 +1185,7 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
             ),
             ElevatedButton(
               onPressed: () {
-                Navigator.pop(dialogContext); // Dialogu kapat
-                // Doğrudan kaydet
-                final settings = ref.read(appSettingsProvider);
-                _save(ref, settings.activeGroupId);
+                _quickSaveAndNavigate(ref, dialogContext);
               },
               style: ElevatedButton.styleFrom(backgroundColor: AppTheme.futureColor),
               child: const Text('Doğru, Kaydet', style: TextStyle(color: Colors.white)),
@@ -1144,6 +1194,203 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
         ),
       );
     }
+  }
+
+  Future<void> _initSpeech() async {
+    await _speech.initialize(
+      onStatus: (val) {
+        if (val == 'done' || val == 'notListening') {
+          if (mounted && !_hasShownDialog) {
+            setState(() => _isListening = false);
+            _processRecognizedText();
+          }
+        }
+      },
+      onError: (val) {
+        if (mounted) {
+          setState(() => _isListening = false);
+          _showError('Ses tanıma hatası: ${val.errorMsg}');
+        }
+      },
+    );
+  }
+
+  void _listen() async {
+    if (!_isListening) {
+      _hasShownDialog = false; // Reset guard before each listen session
+      _recognizedText = '';    // Temizle
+      if (!_speech.isAvailable) {
+        _showError('Konuşma tanıma bu cihazda kullanılamıyor veya izin verilmedi.');
+        return;
+      }
+      setState(() => _isListening = true);
+      await _speech.listen(
+        onResult: (val) {
+          setState(() {
+            _recognizedText = val.recognizedWords;
+          });
+        },
+        localeId: 'tr_TR',
+      );
+    } else {
+      setState(() => _isListening = false);
+      await _speech.stop();
+      // onStatus callback 'done' olarak _processRecognizedText'i tetikleyecek
+    }
+  }
+
+  void _processRecognizedText() {
+    if (_recognizedText.trim().isEmpty) return;
+
+    // "35 bin tl kira", "2220 tl market fişi", "150,5 kahve" gibi ifadeleri parse et
+    // Önce Türkçe sayı kelimelerini (bin, milyon, yüz) çözelim
+    final parsedAmount = _parseTurkishAmount(_recognizedText);
+    String remainingText = _recognizedText.trim().toLowerCase();
+    
+    if (parsedAmount != null) {
+      // Tutar bulunduysa, kalan kısmı başlık olarak al
+      _amountController.text = parsedAmount.toStringAsFixed(
+        parsedAmount == parsedAmount.truncateToDouble() ? 0 : 2
+      );
+      // Tutar + opsiyonel "TL" + boşluk + başlık kalıbını temizle
+      final cleanedTitle = remainingText
+          .replaceFirst(RegExp(r'^\d[\d.,]*\s*(bin|milyon|milyar|yüz|yuz)?\s*(tl)?\s*', caseSensitive: false), '')
+          .replaceFirst(RegExp(r'^(bir|iki|üç|uc|dört|dort|beş|bes|altı|alti|yedi|sekiz|dokuz)?\s*(yüz|yuz|bin|milyon|milyar)?\s*(tl)?\s*', caseSensitive: false), '')
+          .trim();
+      if (cleanedTitle.isNotEmpty) {
+        _titleController.text = cleanedTitle[0].toUpperCase() + cleanedTitle.substring(1).toLowerCase();
+      }
+    } else {
+      // Sayı yoksa sadece başlığa atalım
+      _titleController.text = remainingText[0].toUpperCase() + remainingText.substring(1).toLowerCase();
+    }
+    
+    // İşlem Türünü Otomatik "Gider" Yap
+    setState(() {
+      _type = TransactionType.expense;
+    });
+
+    // Otomatik Kategori Seçimi - konuşma içinde geçen kategori isimlerini bul
+    final rawText = _recognizedText.toLowerCase();
+    final categories = ref.read(categoriesProvider);
+    bool categoryMatched = false;
+    for (final cat in categories) {
+      if (rawText.contains(cat.name.toLowerCase())) {
+        setState(() {
+          _selectedCategory = cat.name;
+          _selectedColor = Color(cat.colorCode);
+        });
+        categoryMatched = true;
+        break;
+      }
+    }
+
+    // Başlık boş kaldıysa akıllı default ata
+    if (_titleController.text.trim().isEmpty) {
+      _titleController.text = _selectedCategory ?? 'Gider';
+    }
+
+    // Guard: sadece bir kez dialog göster
+    if (_hasShownDialog) return;
+    _hasShownDialog = true;
+
+    // Onay Penceresi Göster
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: AppTheme.surfaceColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Sesli İşlem Onayı', style: TextStyle(color: Colors.white)),
+        content: Text(
+          'Tutar: ${_amountController.text} ₺\n'
+          'Başlık: ${_titleController.text}\n'
+          'Kategori: $_selectedCategory\n\n'
+          'Bu gider işlemini kaydetmek istiyor musunuz?',
+          style: const TextStyle(color: Colors.white),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(dialogContext); // Sadece dialogu kapat, formda kalsın
+            },
+            child: const Text('Düzenle / Yanlış', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              _quickSaveAndNavigate(ref, dialogContext);
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.futureColor),
+            child: const Text('Doğru, Kaydet', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Ses/Fiş onay dialogundan direkt kayıt ve yönlendirme
+  void _quickSaveAndNavigate(WidgetRef ref, BuildContext dialogContext) {
+    final settings = ref.read(appSettingsProvider);
+    final groupId = settings.activeGroupId;
+    if (groupId == null) return;
+
+    final cleanAmount = _amountController.text.replaceAll(',', '.');
+    final amount = double.tryParse(cleanAmount) ?? 0;
+    final title = _titleController.text.trim();
+    if (amount <= 0 || title.isEmpty) return;
+
+    final t = Transaction(
+      id: const Uuid().v4(),
+      groupId: groupId,
+      title: title,
+      amount: amount,
+      date: _selectedDate,
+      type: TransactionType.expense,
+      category: _selectedCategory,
+      colorCode: _selectedColor.value,
+      isPaid: false,
+      recurrenceRule: RecurrenceRule.none,
+      currency: 'TRY',
+      originalAmount: amount,
+      exchangeRate: 1.0,
+    );
+
+    ref.read(transactionsProvider.notifier).addTransactions([t]);
+    ref.read(mainScreenIndexProvider.notifier).setIndex(0);
+    ref.read(lastAddedTransactionIdProvider.notifier).setId(t.id);
+
+    // Dialog + Modal'ı kapat
+    Navigator.of(dialogContext).pop();
+    Navigator.of(context).pop();
+  }
+
+  /// Türkçe sayı ifadelerini double'a çevirir:
+  /// "35 bin tl kira" → 35000.0
+  /// "2.500 TL market" → 2500.0
+  /// "150,5 kahve" → 150.5
+  /// "1 milyon" → 1000000.0
+  double? _parseTurkishAmount(String text) {
+    final lower = text.trim().toLowerCase();
+
+    // Rakam + çarpan (bin/milyon/milyar) + opsiyonel "tl"
+    // Örn: "35 bin", "2,5 milyon", "1.5 milyar"
+    final multiplierExp = RegExp(
+      r'^(\d+[.,]?\d*)\s*(bin|milyon|milyar|yüz|yuz)?\s*(tl)?\s*',
+      caseSensitive: false,
+    );
+    final m = multiplierExp.firstMatch(lower);
+    if (m != null) {
+      final numStr = m.group(1)!.replaceAll('.', '').replaceAll(',', '.');
+      final base = double.tryParse(numStr);
+      if (base == null) return null;
+      final multiplierWord = m.group(2)?.toLowerCase();
+      double multiplier = 1.0;
+      if (multiplierWord == 'bin') multiplier = 1000;
+      else if (multiplierWord == 'milyon') multiplier = 1000000;
+      else if (multiplierWord == 'milyar') multiplier = 1000000000;
+      else if (multiplierWord == 'yüz' || multiplierWord == 'yuz') multiplier = 100;
+      return base * multiplier;
+    }
+    return null;
   }
 }
 

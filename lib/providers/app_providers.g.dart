@@ -154,6 +154,111 @@ abstract class _$PinState extends $Notifier<bool> {
   }
 }
 
+@ProviderFor(MainScreenIndex)
+final mainScreenIndexProvider = MainScreenIndexProvider._();
+
+final class MainScreenIndexProvider
+    extends $NotifierProvider<MainScreenIndex, int> {
+  MainScreenIndexProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'mainScreenIndexProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$mainScreenIndexHash();
+
+  @$internal
+  @override
+  MainScreenIndex create() => MainScreenIndex();
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(int value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<int>(value),
+    );
+  }
+}
+
+String _$mainScreenIndexHash() => r'841e7ced549d62247d0f70c88d59a92889b3de8e';
+
+abstract class _$MainScreenIndex extends $Notifier<int> {
+  int build();
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final ref = this.ref as $Ref<int, int>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<int, int>,
+              int,
+              Object?,
+              Object?
+            >;
+    element.handleCreate(ref, build);
+  }
+}
+
+@ProviderFor(LastAddedTransactionId)
+final lastAddedTransactionIdProvider = LastAddedTransactionIdProvider._();
+
+final class LastAddedTransactionIdProvider
+    extends $NotifierProvider<LastAddedTransactionId, String?> {
+  LastAddedTransactionIdProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'lastAddedTransactionIdProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$lastAddedTransactionIdHash();
+
+  @$internal
+  @override
+  LastAddedTransactionId create() => LastAddedTransactionId();
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(String? value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<String?>(value),
+    );
+  }
+}
+
+String _$lastAddedTransactionIdHash() =>
+    r'7a68d518d3b3f32cae0e734e3280d64caef11998';
+
+abstract class _$LastAddedTransactionId extends $Notifier<String?> {
+  String? build();
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final ref = this.ref as $Ref<String?, String?>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<String?, String?>,
+              String?,
+              Object?,
+              Object?
+            >;
+    element.handleCreate(ref, build);
+  }
+}
+
 @ProviderFor(GroupsNotifier)
 final groupsProvider = GroupsNotifierProvider._();
 
@@ -412,6 +517,54 @@ final class FilteredTransactionsProvider
 
 String _$filteredTransactionsHash() =>
     r'fc8eaa7042b48167c6fee03b543ea4368d2c7c09';
+
+@ProviderFor(allGroupTransactions)
+final allGroupTransactionsProvider = AllGroupTransactionsProvider._();
+
+final class AllGroupTransactionsProvider
+    extends
+        $FunctionalProvider<
+          List<Transaction>,
+          List<Transaction>,
+          List<Transaction>
+        >
+    with $Provider<List<Transaction>> {
+  AllGroupTransactionsProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'allGroupTransactionsProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$allGroupTransactionsHash();
+
+  @$internal
+  @override
+  $ProviderElement<List<Transaction>> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  List<Transaction> create(Ref ref) {
+    return allGroupTransactions(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(List<Transaction> value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<List<Transaction>>(value),
+    );
+  }
+}
+
+String _$allGroupTransactionsHash() =>
+    r'1c854b379cfcf3bb7829b9572b127b171bb5bbbc';
 
 @ProviderFor(expenseTransactions)
 final expenseTransactionsProvider = ExpenseTransactionsProvider._();

@@ -18,8 +18,6 @@ class MainScreen extends ConsumerStatefulWidget {
 }
 
 class _MainScreenState extends ConsumerState<MainScreen> {
-  int _selectedIndex = 0;
-
   final List<Widget> _screens = [
     const DashboardScreen(), // Gider (Dashboard)
     const AnalysisScreen(),
@@ -29,8 +27,10 @@ class _MainScreenState extends ConsumerState<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final selectedIndex = ref.watch(mainScreenIndexProvider);
+
     return Scaffold(
-      body: _screens[_selectedIndex],
+      body: _screens[selectedIndex],
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       floatingActionButton: FloatingActionButton(
         onPressed: () {
@@ -41,7 +41,7 @@ class _MainScreenState extends ConsumerState<MainScreen> {
             builder: (context) {
               final selectedDate = ref.read(selectedDateProvider);
               TransactionType? type;
-              if (_selectedIndex == 2) type = TransactionType.income; // Gelir ekranı
+              if (selectedIndex == 2) type = TransactionType.income; // Gelir ekranı
               else type = TransactionType.expense; // Diğer ekranlar (Varsayılan: Gider)
 
               return AddTransactionModal(
@@ -66,14 +66,14 @@ class _MainScreenState extends ConsumerState<MainScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               // Sol Tarafta 2 Menü
-              _buildNavItem(0, Icons.assignment, 'Gider'),
-              _buildNavItem(1, Icons.bar_chart, 'Analiz'),
+              _buildNavItem(0, Icons.assignment, 'Gider', selectedIndex),
+              _buildNavItem(1, Icons.bar_chart, 'Analiz', selectedIndex),
               
               const SizedBox(width: 40), // Merkeze boşluk (FAB için)
               
               // Sağ Tarafta 2 Menü
-              _buildNavItem(2, Icons.account_balance_wallet, 'Gelir'),
-              _buildNavItem(3, Icons.settings, 'Ayarlar'),
+              _buildNavItem(2, Icons.account_balance_wallet, 'Gelir', selectedIndex),
+              _buildNavItem(3, Icons.settings, 'Ayarlar', selectedIndex),
             ],
           ),
         ),
@@ -81,10 +81,10 @@ class _MainScreenState extends ConsumerState<MainScreen> {
     );
   }
 
-  Widget _buildNavItem(int index, IconData icon, String label) {
-    final isSelected = _selectedIndex == index;
+  Widget _buildNavItem(int index, IconData icon, String label, int selectedIndex) {
+    final isSelected = selectedIndex == index;
     return GestureDetector(
-      onTap: () => setState(() => _selectedIndex = index),
+      onTap: () => ref.read(mainScreenIndexProvider.notifier).setIndex(index),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [

@@ -57,6 +57,22 @@ class PinState extends _$PinState {
   void reset() => state = false;
 }
 
+// Global providers for navigation and animation
+@riverpod
+class MainScreenIndex extends _$MainScreenIndex {
+  @override
+  int build() => 0;
+
+  void setIndex(int index) => state = index;
+}
+
+@riverpod
+class LastAddedTransactionId extends _$LastAddedTransactionId {
+  @override
+  String? build() => null;
+
+  void setId(String? id) => state = id;
+}
 @riverpod
 class GroupsNotifier extends _$GroupsNotifier {
   @override
@@ -264,6 +280,11 @@ class CategoriesNotifier extends _$CategoriesNotifier {
     await ref.read(categoriesRepositoryProvider).deleteCategory(name);
     state = state.where((c) => c.name != name).toList();
   }
+
+  Future<void> restoreCategories(List<Category> categories) async {
+    await ref.read(categoriesRepositoryProvider).saveCategories(categories);
+    state = categories;
+  }
 }
 
 @riverpod
@@ -282,6 +303,14 @@ List<Transaction> filteredTransactions(Ref ref) {
     t.date.year == selectedDate.year && 
     t.date.month == selectedDate.month
   ).toList();
+}
+
+@riverpod
+List<Transaction> allGroupTransactions(Ref ref) {
+  final settings = ref.watch(appSettingsProvider);
+  final transactions = ref.watch(transactionsProvider);
+  if (settings.activeGroupId == null) return [];
+  return transactions.where((t) => t.groupId == settings.activeGroupId).toList();
 }
 
 @riverpod
