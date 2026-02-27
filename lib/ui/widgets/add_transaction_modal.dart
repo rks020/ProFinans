@@ -53,7 +53,6 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
   void initState() {
     super.initState();
     _speech = stt.SpeechToText();
-    _initSpeech();
     // EĞER DÜZENLEME MODUNDAYSA VERİLERİ DOLDUR
     if (widget.transactionToEdit != null) {
       final t = widget.transactionToEdit!;
@@ -1196,46 +1195,55 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
     }
   }
 
-  Future<void> _initSpeech() async {
-    await _speech.initialize(
-      onStatus: (val) {
-        if (val == 'done' || val == 'notListening') {
-          if (mounted && !_hasShownDialog) {
-            setState(() => _isListening = false);
-            _processRecognizedText();
-          }
-        }
-      },
-      onError: (val) {
-        if (mounted) {
-          setState(() => _isListening = false);
-          _showError('Ses tanıma hatası: ${val.errorMsg}');
-        }
-      },
-    );
-  }
-
   void _listen() async {
     if (!_isListening) {
-      _hasShownDialog = false; // Reset guard before each listen session
-      _recognizedText = '';    // Temizle
-      if (!_speech.isAvailable) {
-        _showError('Konuşma tanıma bu cihazda kullanılamıyor veya izin verilmedi.');
-        return;
-      }
-      setState(() => _isListening = true);
-      await _speech.listen(
-        onResult: (val) {
-          setState(() {
-            _recognizedText = val.recognizedWords;
-          });
+      _hasShownDialog = false; // Her dinlemede guard'ı sıfırla
+      _recognizedText = '';
+      
+      bool available = await _speech.initialize(
+        onStatus: (val) {
+          if (val == 'done' || val == 'notListening') {
+            if (mounted) {
+              setState(() => _isListening = false);
+              // Artık onStatus içinden işlemi TETİKLEMİYORUZ (sadece dinlemenin bittiğini UI'a söylüyoruz)
+              // Çünkü iOS/Android otomatik durduğunda da dialog çıksın istiyorsak buraya koymalıyız.
+              // Eğer buraya koyarsak hem stop() hem bu çiftler. Bu yüzden _hasShownDialog ile guardlıyoruz.
+              if (!_hasShownDialog && _recognizedText.isNotEmpty) {
+                 _processRecognizedText();
+              }
+            }
+          }
         },
-        localeId: 'tr_TR',
+        onError: (val) {
+          if (mounted) {
+            setState(() => _isListening = false);
+            _showError('Ses tanıma hatası: ${val.errorMsg}');
+          }
+        },
       );
+
+      if (available) {
+        setState(() => _isListening = true);
+        _speech.listen(
+          onResult: (val) {
+            if (mounted) {
+              setState(() {
+                _recognizedText = val.recognizedWords;
+              });
+            }
+          },
+          localeId: 'tr_TR',
+        );
+      } else {
+        _showError('Konuşma tanıma bu cihazda kullanılamıyor veya izin verilmedi.');
+      }
     } else {
+      // KULLANICI MANUEL DURDURDU:
       setState(() => _isListening = false);
-      await _speech.stop();
-      // onStatus callback 'done' olarak _processRecognizedText'i tetikleyecek
+      _speech.stop();
+      if (!_hasShownDialog && _recognizedText.isNotEmpty) {
+        _processRecognizedText();
+      }
     }
   }
 
