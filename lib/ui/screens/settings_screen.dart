@@ -203,22 +203,43 @@ class SettingsScreen extends ConsumerWidget {
         }
 
         // 3. İşlemleri Yükle
+        List<Transaction>? transactionsList;
         if (data.containsKey('transactions')) {
-          final transactionsList = (data['transactions'] as List)
+          transactionsList = (data['transactions'] as List)
               .map((t) => Transaction.fromJson(t))
               .toList()
               .cast<Transaction>();
           await ref.read(transactionsProvider.notifier).restoreTransactions(transactionsList);
         }
 
-        // 4. Kategorileri Yükle
+        // 4. Kategorileri Yükle - Map ile tekrarları engelle
+        final Map<String, Category> allCategories = {};
+        
+        // Önce JSON'dan gelen kategorileri ekle
         if (data.containsKey('categories')) {
-          final categoriesList = (data['categories'] as List)
+          final importedCategories = (data['categories'] as List)
               .map((c) => Category.fromJson(c))
               .toList()
               .cast<Category>();
-          await ref.read(categoriesProvider.notifier).restoreCategories(categoriesList);
+          for (final c in importedCategories) {
+            allCategories[c.name] = c;
+          }
         }
+        
+        // Sonra işlemlerden eksik kategorileri çıkar
+        if (transactionsList != null) {
+          for (final t in transactionsList) {
+            if (!allCategories.containsKey(t.category)) {
+              allCategories[t.category] = Category(
+                name: t.category,
+                colorCode: t.colorCode,
+              );
+            }
+          }
+        }
+        
+        // Tüm kategorileri kaydet (Hive box'ı temizlenip yeniden yazılır)
+        await ref.read(categoriesProvider.notifier).restoreCategories(allCategories.values.toList());
 
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(

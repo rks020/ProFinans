@@ -24,4 +24,12 @@ class CategoriesRepository {
     };
     await _box.putAll(map);
   }
+
+  Future<void> replaceAllCategories(List<Category> categories) async {
+    await _box.clear();
+    final Map<String, Category> map = {
+      for (var c in categories) c.name: c
+    };
+    await _box.putAll(map);
+  }
 }

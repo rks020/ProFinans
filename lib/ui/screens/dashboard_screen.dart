@@ -8,6 +8,7 @@ import '../../data/models/enums.dart'; // TransactionType için
 import '../theme/app_theme.dart';
 import '../widgets/add_transaction_modal.dart';
 import '../widgets/date_selector.dart';
+import '../widgets/transaction_detail_modal.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -400,14 +401,24 @@ class _VerticalSummaryCardState extends ConsumerState<VerticalSummaryCard> {
               // Bu sadece 'single' onaylandığında çalışır
               ref.read(transactionsProvider.notifier).deleteTransaction(t.id);
             },
-            child: Container(
-              padding: const EdgeInsets.all(16.0),
-              decoration: BoxDecoration(
-                color: bgColor,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.white.withOpacity(0.05)),
-              ),
-              child: Row(
+            child: GestureDetector(
+              onTap: () {
+                showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true,
+                  backgroundColor: Colors.transparent,
+                  builder: (context) => TransactionDetailModal(transaction: t),
+                );
+              },
+              behavior: HitTestBehavior.opaque,
+              child: Container(
+                padding: const EdgeInsets.all(16.0),
+                decoration: BoxDecoration(
+                  color: bgColor,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.white.withOpacity(0.05)),
+                ),
+                child: Row(
                 children: [
                   // Kategori Renk İndikatörü
                   Container(
@@ -473,7 +484,8 @@ class _VerticalSummaryCardState extends ConsumerState<VerticalSummaryCard> {
           ),
         ),
       ),
-    );
+    ),
+  );
       },
     );
   }

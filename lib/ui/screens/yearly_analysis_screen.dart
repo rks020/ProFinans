@@ -19,7 +19,7 @@ class _YearlyAnalysisScreenState extends ConsumerState<YearlyAnalysisScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final transactions = ref.watch(transactionsProvider);
+    final transactions = ref.watch(allGroupTransactionsProvider);
     final settings = ref.watch(appSettingsProvider);
     final currencySymbol = settings.selectedCurrency;
 

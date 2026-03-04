@@ -282,8 +282,8 @@ class CategoriesNotifier extends _$CategoriesNotifier {
   }
 
   Future<void> restoreCategories(List<Category> categories) async {
-    await ref.read(categoriesRepositoryProvider).saveCategories(categories);
-    state = categories;
+    await ref.read(categoriesRepositoryProvider).replaceAllCategories(categories);
+    state = ref.read(categoriesRepositoryProvider).getAllCategories();
   }
 }
 

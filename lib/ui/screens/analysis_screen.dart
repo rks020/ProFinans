@@ -7,7 +7,7 @@ import '../../data/models/transaction.dart';
 import '../../data/models/enums.dart';
 import '../theme/app_theme.dart';
 import '../widgets/date_selector.dart';
-
+import '../widgets/transaction_detail_modal.dart';
 import '../widgets/sankey_flow_chart.dart';
 
 class AnalysisScreen extends ConsumerStatefulWidget {
@@ -569,6 +569,14 @@ class _AuditListModal extends ConsumerWidget {
                                ref.read(transactionsProvider.notifier).deleteTransaction(t.id);
                              },
                              child: ListTile(
+                               onTap: () {
+                                 showModalBottomSheet(
+                                   context: context,
+                                   isScrollControlled: true,
+                                   backgroundColor: Colors.transparent,
+                                   builder: (context) => TransactionDetailModal(transaction: t),
+                                 );
+                               },
                                leading: CircleAvatar(
                                  backgroundColor: displayColor.withOpacity(0.2),
                                  child: Icon(
