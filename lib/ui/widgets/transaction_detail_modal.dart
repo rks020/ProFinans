@@ -171,7 +171,12 @@ class TransactionDetailModal extends ConsumerWidget {
               _buildDetailRow(
                 icon: Icons.repeat,
                 label: 'Tekrar Tipi',
-                value: _getRecurrenceLabel(transaction.recurrenceRule),
+                value: _getRecurrenceLabel(transaction.recurrenceRule, isFinite: true),
+              ),
+              _buildDetailRow(
+                icon: Icons.account_balance_wallet_outlined,
+                label: 'Toplam Tutar',
+                value: isPrivacyMode ? '***₺' : format.format(transaction.amount * totalRelated),
               ),
               _buildDetailRow(
                 icon: Icons.event_available,
@@ -231,13 +236,13 @@ class TransactionDetailModal extends ConsumerWidget {
     );
   }
 
-  String _getRecurrenceLabel(RecurrenceRule rule) {
+  String _getRecurrenceLabel(RecurrenceRule rule, {bool isFinite = false}) {
     switch (rule) {
       case RecurrenceRule.none: return 'Bir kez';
       case RecurrenceRule.daily: return 'Her gün';
       case RecurrenceRule.weekly: return 'Her hafta';
       case RecurrenceRule.biweekly: return 'Her 2 haftada bir';
-      case RecurrenceRule.monthly: return 'Her ay';
+      case RecurrenceRule.monthly: return isFinite ? 'Sonlu Ödeme (Aylık)' : 'Her ay';
       case RecurrenceRule.quarterly: return 'Her 3 ayda bir';
       case RecurrenceRule.semiannually: return 'Her 6 ayda bir';
       case RecurrenceRule.yearly: return 'Her yıl';
