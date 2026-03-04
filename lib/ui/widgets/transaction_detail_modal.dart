@@ -159,6 +159,11 @@ class TransactionDetailModal extends ConsumerWidget {
                 label: 'Taksit',
                 value: '${transaction.installmentCurrent} / ${transaction.installmentTotal}',
               ),
+              _buildDetailRow(
+                icon: Icons.account_balance_wallet_outlined,
+                label: 'Toplam Tutar',
+                value: isPrivacyMode ? '***₺' : format.format(transaction.amount * transaction.installmentTotal!),
+              ),
             ],
 
             if (transaction.recurrenceRule != RecurrenceRule.none && endDate != null) ...[
