@@ -34,13 +34,17 @@ class TransactionAdapter extends TypeAdapter<Transaction> {
       currency: fields[12] as String?,
       originalAmount: (fields[13] as num?)?.toDouble(),
       exchangeRate: (fields[14] as num?)?.toDouble(),
+      hasReminder: fields[15] == null ? false : fields[15] as bool,
+      reminderInterval: fields[16] == null
+          ? ReminderInterval.none
+          : fields[16] as ReminderInterval,
     );
   }
 
   @override
   void write(BinaryWriter writer, Transaction obj) {
     writer
-      ..writeByte(15)
+      ..writeByte(17)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -70,7 +74,11 @@ class TransactionAdapter extends TypeAdapter<Transaction> {
       ..writeByte(13)
       ..write(obj.originalAmount)
       ..writeByte(14)
-      ..write(obj.exchangeRate);
+      ..write(obj.exchangeRate)
+      ..writeByte(15)
+      ..write(obj.hasReminder)
+      ..writeByte(16)
+      ..write(obj.reminderInterval);
   }
 
   @override
@@ -106,6 +114,13 @@ _Transaction _$TransactionFromJson(Map<String, dynamic> json) => _Transaction(
   currency: json['currency'] as String?,
   originalAmount: (json['originalAmount'] as num?)?.toDouble(),
   exchangeRate: (json['exchangeRate'] as num?)?.toDouble(),
+  hasReminder: json['hasReminder'] as bool? ?? false,
+  reminderInterval:
+      $enumDecodeNullable(
+        _$ReminderIntervalEnumMap,
+        json['reminderInterval'],
+      ) ??
+      ReminderInterval.none,
 );
 
 Map<String, dynamic> _$TransactionToJson(_Transaction instance) =>
@@ -125,6 +140,8 @@ Map<String, dynamic> _$TransactionToJson(_Transaction instance) =>
       'currency': instance.currency,
       'originalAmount': instance.originalAmount,
       'exchangeRate': instance.exchangeRate,
+      'hasReminder': instance.hasReminder,
+      'reminderInterval': _$ReminderIntervalEnumMap[instance.reminderInterval]!,
     };
 
 const _$TransactionTypeEnumMap = {
@@ -144,4 +161,14 @@ const _$RecurrenceRuleEnumMap = {
   RecurrenceRule.semiannually: 'semiannually',
   RecurrenceRule.firstWorkday: 'firstWorkday',
   RecurrenceRule.lastWorkday: 'lastWorkday',
+};
+
+const _$ReminderIntervalEnumMap = {
+  ReminderInterval.none: 'none',
+  ReminderInterval.thirtyMinutes: 'thirtyMinutes',
+  ReminderInterval.oneHour: 'oneHour',
+  ReminderInterval.twelveHours: 'twelveHours',
+  ReminderInterval.oneDay: 'oneDay',
+  ReminderInterval.twoDays: 'twoDays',
+  ReminderInterval.oneWeek: 'oneWeek',
 };

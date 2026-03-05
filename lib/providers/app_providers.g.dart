@@ -450,7 +450,7 @@ final class CategoriesNotifierProvider
 }
 
 String _$categoriesNotifierHash() =>
-    r'c09a6b91e2082d28a032df61d635109e55ae4de0';
+    r'201ab1051bdeec9908909ce5066b543dff7fabf3';
 
 abstract class _$CategoriesNotifier extends $Notifier<List<Category>> {
   List<Category> build();

@@ -27,3 +27,14 @@ enum RecurrenceRule {
   @HiveField(9) lastWorkday,
 }
 
+@HiveType(typeId: 6)
+enum ReminderInterval {
+  @HiveField(0) none,
+  @HiveField(1) thirtyMinutes,
+  @HiveField(2) oneHour,
+  @HiveField(3) twelveHours,
+  @HiveField(4) oneDay,
+  @HiveField(5) twoDays,
+  @HiveField(6) oneWeek,
+}
+

@@ -115,3 +115,60 @@ class RecurrenceRuleAdapter extends TypeAdapter<RecurrenceRule> {
           runtimeType == other.runtimeType &&
           typeId == other.typeId;
 }
+
+class ReminderIntervalAdapter extends TypeAdapter<ReminderInterval> {
+  @override
+  final typeId = 6;
+
+  @override
+  ReminderInterval read(BinaryReader reader) {
+    switch (reader.readByte()) {
+      case 0:
+        return ReminderInterval.none;
+      case 1:
+        return ReminderInterval.thirtyMinutes;
+      case 2:
+        return ReminderInterval.oneHour;
+      case 3:
+        return ReminderInterval.twelveHours;
+      case 4:
+        return ReminderInterval.oneDay;
+      case 5:
+        return ReminderInterval.twoDays;
+      case 6:
+        return ReminderInterval.oneWeek;
+      default:
+        return ReminderInterval.none;
+    }
+  }
+
+  @override
+  void write(BinaryWriter writer, ReminderInterval obj) {
+    switch (obj) {
+      case ReminderInterval.none:
+        writer.writeByte(0);
+      case ReminderInterval.thirtyMinutes:
+        writer.writeByte(1);
+      case ReminderInterval.oneHour:
+        writer.writeByte(2);
+      case ReminderInterval.twelveHours:
+        writer.writeByte(3);
+      case ReminderInterval.oneDay:
+        writer.writeByte(4);
+      case ReminderInterval.twoDays:
+        writer.writeByte(5);
+      case ReminderInterval.oneWeek:
+        writer.writeByte(6);
+    }
+  }
+
+  @override
+  int get hashCode => typeId.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ReminderIntervalAdapter &&
+          runtimeType == other.runtimeType &&
+          typeId == other.typeId;
+}

@@ -15,6 +15,7 @@ extension HiveRegistrar on HiveInterface {
     registerAdapter(AppSettingsAdapter());
     registerAdapter(CategoryAdapter());
     registerAdapter(RecurrenceRuleAdapter());
+    registerAdapter(ReminderIntervalAdapter());
     registerAdapter(TransactionAdapter());
     registerAdapter(TransactionTypeAdapter());
   }
@@ -26,6 +27,7 @@ extension IsolatedHiveRegistrar on IsolatedHiveInterface {
     registerAdapter(AppSettingsAdapter());
     registerAdapter(CategoryAdapter());
     registerAdapter(RecurrenceRuleAdapter());
+    registerAdapter(ReminderIntervalAdapter());
     registerAdapter(TransactionAdapter());
     registerAdapter(TransactionTypeAdapter());
   }

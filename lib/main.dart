@@ -11,14 +11,24 @@ import 'ui/screens/main_screen.dart';
 import 'package:uuid/uuid.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'hive_registrar.g.dart';
+import 'package:path_provider/path_provider.dart'; // Added this import for getApplicationDocumentsDirectory
 
 import 'ui/screens/pin_screen.dart';
 import 'providers/app_providers.dart';
 
+import 'data/services/notification_service.dart'; // Added this import
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  await NotificationService().initialize(); // Added this line
+  await NotificationService().requestPermissions(); // Added this line
+
   // ⚠️ BU SATIRI EKLE: Türkçe tarih formatını başlat
   await initializeDateFormatting('tr_TR', null);
+  
+  final appDocumentDirectory = await getApplicationDocumentsDirectory(); // Added this line
+  Hive.init(appDocumentDirectory.path); // Added this line
   
   await Hive.initFlutter();
   

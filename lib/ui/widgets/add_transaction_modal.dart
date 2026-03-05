@@ -8,6 +8,7 @@ import '../../data/models/enums.dart';
 import '../../data/models/category.dart' as model;
 import '../../providers/app_providers.dart';
 import '../../data/services/receipt_scanner_service.dart';
+import '../../data/services/notification_service.dart';
 import '../theme/app_theme.dart';
 import '../screens/live_receipt_scanner_screen.dart';
 
@@ -33,7 +34,9 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
   // Varsayılan değerler
   RecurrenceRule _recurrence = RecurrenceRule.none;
   DateTime _selectedDate = DateTime.now();
+  TimeOfDay _selectedTime = TimeOfDay.now();
   int? _installments;
+  ReminderInterval _reminderInterval = ReminderInterval.none;
 
   bool _isEndDateEnabled = false;
   DateTime _endDate = DateTime.now();
@@ -64,6 +67,8 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
       _recurrence = t.recurrenceRule;
       _installments = t.installmentTotal;
       _selectedDate = t.date;
+      _selectedTime = TimeOfDay.fromDateTime(t.date);
+      _reminderInterval = t.reminderInterval;
     } else {
       // YENİ EKLEME: Varsayılan tip
       if (widget.initialType != null) {
@@ -76,10 +81,14 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
         // Eğer gelen tarih bu ay ise, bugünü seç (saat farkı olmaksızın)
         if (widget.initialDate!.year == now.year && widget.initialDate!.month == now.month) {
           _selectedDate = now;
+          _selectedTime = TimeOfDay.fromDateTime(now);
         } else {
           // Farklı bir ay ise, o ayın 1'ini (veya gelen tarihi) kullan
           _selectedDate = widget.initialDate!;
+          _selectedTime = const TimeOfDay(hour: 12, minute: 0);
         }
+      } else {
+        _selectedTime = TimeOfDay.now();
       }
       _endDate = _selectedDate; // Bitiş tarihini de eşitle
     }
@@ -296,6 +305,26 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
             ),
             const SizedBox(height: 12),
 
+            // İşlem Saati Seçici
+            _buildSelectionRow(
+              label: 'İşlem Saati',
+              value: _selectedTime.format(context),
+              icon: Icons.access_time,
+              onTap: () async {
+                final picked = await showTimePicker(
+                  context: context,
+                  initialTime: _selectedTime,
+                  builder: (context, child) => Theme(data: AppTheme.darkTheme, child: child!),
+                );
+                if (picked != null) {
+                  setState(() {
+                    _selectedTime = picked;
+                  });
+                }
+              },
+            ),
+            const SizedBox(height: 12),
+
             // Sonlu Ödeme Switch
             if (!isEditing) 
               Container(
@@ -446,6 +475,43 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
                 value: _installments?.toString() ?? 'Yok',
                 icon: Icons.credit_card,
                 onTap: _showInstallmentPicker,
+              ),
+            ],
+            
+            // Hatırlatıcı (Sadece Giderse ve Yeni Eklemedeyse)
+            if (_type == TransactionType.expense && !isEditing) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(color: AppTheme.surfaceColor, borderRadius: BorderRadius.circular(16)),
+                child: Row(
+                  children: [
+                    const Icon(Icons.notifications_active, size: 20, color: Colors.grey),
+                    const SizedBox(width: 12),
+                    const Text('Hatırlatıcı Eğilim', style: TextStyle(color: Colors.white)),
+                    const Spacer(),
+                    DropdownButton<ReminderInterval>(
+                      dropdownColor: AppTheme.surfaceColor,
+                      value: _reminderInterval,
+                      underline: const SizedBox(),
+                      icon: const Icon(Icons.arrow_drop_down, color: AppTheme.futureColor),
+                      style: const TextStyle(color: Colors.white, fontSize: 14),
+                      items: ReminderInterval.values.map((interval) {
+                        return DropdownMenuItem(
+                          value: interval,
+                          child: Text(_getReminderIntervalLabel(interval)),
+                        );
+                      }).toList(),
+                      onChanged: (val) {
+                        if (val != null) {
+                          setState(() {
+                            _reminderInterval = val;
+                          });
+                        }
+                      },
+                    ),
+                  ],
+                ),
               ),
             ],
 
@@ -682,7 +748,7 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         decoration: BoxDecoration(color: AppTheme.surfaceColor, borderRadius: BorderRadius.circular(16)),
         child: Row(
           children: [
@@ -808,6 +874,7 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
   }
 
   void _save(WidgetRef ref, String? groupId) {
+    final isEditing = widget.transactionToEdit != null;
     // Dismiss keyboard
     FocusScope.of(context).unfocus();
 
@@ -823,6 +890,15 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
     final double exchangeRate = _currentExchangeRate ?? 1.0;
     final double amount = _selectedCurrency == 'TRY' ? enteredAmount : enteredAmount * exchangeRate;
     final double originalAmount = enteredAmount;
+
+    // Tarih ve saati birleştir
+    final finalSelectedDate = DateTime(
+      _selectedDate.year,
+      _selectedDate.month,
+      _selectedDate.day,
+      _selectedTime.hour,
+      _selectedTime.minute,
+    );
 
     final isTitleEmpty = _titleController.text.trim().isEmpty;
     final isAmountInvalid = amount <= 0;
@@ -844,15 +920,18 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
       final updatedTransaction = existing.copyWith(
         title: _titleController.text.trim(),
         amount: amount,
-        date: _selectedDate,
+        date: finalSelectedDate,
         type: _type,
         category: _selectedCategory,
         colorCode: _selectedColor.value,
         recurrenceRule: _recurrence,
+        reminderInterval: _reminderInterval,
+        hasReminder: _reminderInterval != ReminderInterval.none,
       );
 
       bool isRecurring = existing.recurrenceRule != RecurrenceRule.none || updatedTransaction.recurrenceRule != RecurrenceRule.none;
-      if (isRecurring) {
+
+      if (isRecurring && !isEditing) {
         showDialog(
           context: context,
           builder: (dialogContext) => AlertDialog(
@@ -924,7 +1003,7 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
       }
     }
 
-    DateTime currentDate = _selectedDate;
+    DateTime currentDate = finalSelectedDate;
 
     for (int i = 0; i < iterations; i++) {
       DateTime transactionDate = currentDate;
@@ -932,33 +1011,33 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
       if (i > 0) {
         switch (_recurrence) {
           case RecurrenceRule.daily:
-            transactionDate = _selectedDate.add(Duration(days: i));
+            transactionDate = finalSelectedDate.add(Duration(days: i));
             break;
           case RecurrenceRule.weekly:
-            transactionDate = _selectedDate.add(Duration(days: i * 7));
+            transactionDate = finalSelectedDate.add(Duration(days: i * 7));
             break;
           case RecurrenceRule.biweekly:
-            transactionDate = _selectedDate.add(Duration(days: i * 14));
+            transactionDate = finalSelectedDate.add(Duration(days: i * 14));
             break;
           case RecurrenceRule.monthly:
-            transactionDate = DateTime(_selectedDate.year, _selectedDate.month + i, _selectedDate.day);
+            transactionDate = DateTime(finalSelectedDate.year, finalSelectedDate.month + i, finalSelectedDate.day, finalSelectedDate.hour, finalSelectedDate.minute);
             break;
           case RecurrenceRule.quarterly:
-            transactionDate = DateTime(_selectedDate.year, _selectedDate.month + (i * 3), _selectedDate.day);
+            transactionDate = DateTime(finalSelectedDate.year, finalSelectedDate.month + (i * 3), finalSelectedDate.day, finalSelectedDate.hour, finalSelectedDate.minute);
             break;
           case RecurrenceRule.semiannually:
-            transactionDate = DateTime(_selectedDate.year, _selectedDate.month + (i * 6), _selectedDate.day);
+            transactionDate = DateTime(finalSelectedDate.year, finalSelectedDate.month + (i * 6), finalSelectedDate.day, finalSelectedDate.hour, finalSelectedDate.minute);
             break;
           case RecurrenceRule.yearly:
-            transactionDate = DateTime(_selectedDate.year + i, _selectedDate.month, _selectedDate.day);
+            transactionDate = DateTime(finalSelectedDate.year + i, finalSelectedDate.month, finalSelectedDate.day, finalSelectedDate.hour, finalSelectedDate.minute);
             break;
           case RecurrenceRule.firstWorkday:
-            DateTime targetMonth = DateTime(_selectedDate.year, _selectedDate.month + i, 1);
+            DateTime targetMonth = DateTime(finalSelectedDate.year, finalSelectedDate.month + i, 1, finalSelectedDate.hour, finalSelectedDate.minute);
             while (targetMonth.weekday > 5) targetMonth = targetMonth.add(const Duration(days: 1));
             transactionDate = targetMonth;
             break;
           case RecurrenceRule.lastWorkday:
-            DateTime targetMonth = DateTime(_selectedDate.year, _selectedDate.month + i + 1, 0);
+            DateTime targetMonth = DateTime(finalSelectedDate.year, finalSelectedDate.month + i + 1, 0, finalSelectedDate.hour, finalSelectedDate.minute);
             while (targetMonth.weekday > 5) targetMonth = targetMonth.subtract(const Duration(days: 1));
             transactionDate = targetMonth;
             break;
@@ -981,6 +1060,8 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
         currency: _selectedCurrency,
         originalAmount: originalAmount,
         exchangeRate: exchangeRate,
+        reminderInterval: _reminderInterval,
+        hasReminder: _reminderInterval != ReminderInterval.none,
       ));
     }
 
@@ -991,7 +1072,7 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
             groupId: groupId,
             title: '${_titleController.text.trim()} (${i + 1}/${_installments})',
             amount: amount / _installments!,
-            date: DateTime(currentDate.year, currentDate.month + i, currentDate.day),
+            date: DateTime(finalSelectedDate.year, finalSelectedDate.month + i, finalSelectedDate.day, finalSelectedDate.hour, finalSelectedDate.minute),
             type: _type,
             category: _selectedCategory,
             colorCode: _selectedColor.value,
@@ -1002,6 +1083,8 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
             currency: _selectedCurrency,
             originalAmount: originalAmount / _installments!,
             exchangeRate: exchangeRate,
+            reminderInterval: _reminderInterval,
+            hasReminder: _reminderInterval != ReminderInterval.none,
           ));
        }
     } else if (transactionsToSave.isEmpty) { // Tek seferlik işlem veya Mevcut işlem güncelleme
@@ -1015,7 +1098,7 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
           groupId: groupId,
           title: _titleController.text.trim(),
           amount: amount,
-          date: _selectedDate,
+          date: finalSelectedDate,
           type: _type,
           category: _selectedCategory,
           colorCode: _selectedColor.value,
@@ -1028,6 +1111,13 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
     }
 
     ref.read(transactionsProvider.notifier).addTransactions(transactionsToSave);
+
+    // Schedule notifications for transactions with a reminder
+    for (final t in transactionsToSave) {
+      if (t.reminderInterval != ReminderInterval.none) {
+        NotificationService().scheduleTransactionReminder(t);
+      }
+    }
     
     // Gider (veya Yatırım) ise 0. sekme (Dashboard), Gelir ise 2. sekme (Income)
     if (_type == TransactionType.income) {
@@ -1399,6 +1489,17 @@ class _AddTransactionModalState extends ConsumerState<AddTransactionModal> {
       return base * multiplier;
     }
     return null;
+  }
+  String _getReminderIntervalLabel(ReminderInterval interval) {
+    switch (interval) {
+      case ReminderInterval.none: return 'Yok';
+      case ReminderInterval.thirtyMinutes: return '30 Dakika Önce';
+      case ReminderInterval.oneHour: return '1 Saat Önce';
+      case ReminderInterval.twelveHours: return '12 Saat Önce';
+      case ReminderInterval.oneDay: return '1 Gün Önce';
+      case ReminderInterval.twoDays: return '2 Gün Önce';
+      case ReminderInterval.oneWeek: return '1 Hafta Önce';
+    }
   }
 }
 

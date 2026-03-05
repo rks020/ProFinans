@@ -186,13 +186,17 @@ class _YearlyAnalysisScreenState extends ConsumerState<YearlyAnalysisScreen> {
                       style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 16),
                   Container(
-                    height: 300,
+                    height: 400,
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       color: AppTheme.surfaceColor,
                       borderRadius: BorderRadius.circular(16),
                     ),
-                    child: _CategoryPieChart(transactions: yearTransactions, currencySymbol: currencySymbol),
+                    child: _CategoryPieChart(
+                      transactions: yearTransactions, 
+                      currencySymbol: currencySymbol,
+                      isPrivacyMode: settings.isPrivacyMode,
+                    ),
                   ),
                   const SizedBox(height: 32),
 
@@ -202,7 +206,7 @@ class _YearlyAnalysisScreenState extends ConsumerState<YearlyAnalysisScreen> {
                         style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 16),
                     Container(
-                      height: 300,
+                      height: 400,
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
                         color: AppTheme.surfaceColor,
@@ -211,7 +215,8 @@ class _YearlyAnalysisScreenState extends ConsumerState<YearlyAnalysisScreen> {
                       child: _CategoryPieChart(
                         transactions: yearTransactions, 
                         currencySymbol: currencySymbol, 
-                        type: TransactionType.investment
+                        type: TransactionType.investment,
+                        isPrivacyMode: settings.isPrivacyMode,
                       ),
                     ),
                     const SizedBox(height: 50),
@@ -343,11 +348,13 @@ class _CategoryPieChart extends StatelessWidget {
   final List<Transaction> transactions;
   final String currencySymbol;
   final TransactionType type;
+  final bool isPrivacyMode;
 
   const _CategoryPieChart({
     required this.transactions, 
     required this.currencySymbol,
     this.type = TransactionType.expense,
+    required this.isPrivacyMode,
   });
 
   @override
@@ -370,10 +377,10 @@ class _CategoryPieChart extends StatelessWidget {
       return const Center(child: Text('Veri yok', style: TextStyle(color: Colors.grey)));
     }
 
-    return Row(
+    return Column(
       children: [
-        Expanded(
-          flex: 3,
+        SizedBox(
+          height: 150,
           child: PieChart(
             PieChartData(
               sectionsSpace: 2,
@@ -393,9 +400,8 @@ class _CategoryPieChart extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(width: 16),
+        const SizedBox(height: 16),
         Expanded(
-          flex: 2,
           child: ListView.builder(
             itemCount: sortedEntries.length,
             itemBuilder: (context, index) {
@@ -415,7 +421,9 @@ class _CategoryPieChart extends StatelessWidget {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        e.key,
+                         isPrivacyMode
+                            ? '${e.key} - *** TL'
+                            : '${e.key} - ${NumberFormat.currency(locale: 'tr_TR', symbol: '', decimalDigits: 0).format(e.value).trim()} TL',
                         style: const TextStyle(color: Colors.white, fontSize: 12),
                         overflow: TextOverflow.ellipsis,
                       ),

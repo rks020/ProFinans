@@ -26,6 +26,8 @@ abstract class Transaction extends HiveObject with _$Transaction {
     @HiveField(12) String? currency,
     @HiveField(13) double? originalAmount,
     @HiveField(14) double? exchangeRate,
+    @HiveField(15) @Default(false) bool hasReminder, // Keeping for backwards compatibility/migration step if needed or we could delete it, let's keep it safe.
+    @HiveField(16) @Default(ReminderInterval.none) ReminderInterval reminderInterval,
   }) = _Transaction;
 
   factory Transaction.fromJson(Map<String, dynamic> json) => _$TransactionFromJson(json);
