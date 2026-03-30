@@ -83,7 +83,7 @@ final class AppSettingsNotifierProvider
 }
 
 String _$appSettingsNotifierHash() =>
-    r'8b30e308c125f2d77f9a52a2ac7c7c260c484b04';
+    r'474a87db468d16881a5d90ae7c423d578fa672bc';
 
 abstract class _$AppSettingsNotifier extends $Notifier<AppSettings> {
   AppSettings build();
@@ -344,7 +344,7 @@ final class TransactionsNotifierProvider
 }
 
 String _$transactionsNotifierHash() =>
-    r'f85581494b49ffe50abdf1e5e5d7c6d062b51bde';
+    r'bd529c8e62dde60a6ac4d77232d23bd7feb98259';
 
 abstract class _$TransactionsNotifier extends $Notifier<List<Transaction>> {
   List<Transaction> build();
@@ -450,7 +450,7 @@ final class CategoriesNotifierProvider
 }
 
 String _$categoriesNotifierHash() =>
-    r'201ab1051bdeec9908909ce5066b543dff7fabf3';
+    r'2f8efb85fe9bfee61df44a786d1b218d21cabc94';
 
 abstract class _$CategoriesNotifier extends $Notifier<List<Category>> {
   List<Category> build();
@@ -858,52 +858,52 @@ final class InvestmentDashboardProvider
 String _$investmentDashboardHash() =>
     r'e58c15e05b2d793e541be8ab66184155f7df2eee';
 
-@ProviderFor(dashboardTransactions)
-final dashboardTransactionsProvider = DashboardTransactionsProvider._();
+@ProviderFor(categoryBudgetStatus)
+final categoryBudgetStatusProvider = CategoryBudgetStatusProvider._();
 
-final class DashboardTransactionsProvider
+final class CategoryBudgetStatusProvider
     extends
         $FunctionalProvider<
-          Map<String, List<Transaction>>,
-          Map<String, List<Transaction>>,
-          Map<String, List<Transaction>>
+          Map<String, CategoryBudgetStatus>,
+          Map<String, CategoryBudgetStatus>,
+          Map<String, CategoryBudgetStatus>
         >
-    with $Provider<Map<String, List<Transaction>>> {
-  DashboardTransactionsProvider._()
+    with $Provider<Map<String, CategoryBudgetStatus>> {
+  CategoryBudgetStatusProvider._()
     : super(
         from: null,
         argument: null,
         retry: null,
-        name: r'dashboardTransactionsProvider',
+        name: r'categoryBudgetStatusProvider',
         isAutoDispose: true,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
 
   @override
-  String debugGetCreateSourceHash() => _$dashboardTransactionsHash();
+  String debugGetCreateSourceHash() => _$categoryBudgetStatusHash();
 
   @$internal
   @override
-  $ProviderElement<Map<String, List<Transaction>>> $createElement(
+  $ProviderElement<Map<String, CategoryBudgetStatus>> $createElement(
     $ProviderPointer pointer,
   ) => $ProviderElement(pointer);
 
   @override
-  Map<String, List<Transaction>> create(Ref ref) {
-    return dashboardTransactions(ref);
+  Map<String, CategoryBudgetStatus> create(Ref ref) {
+    return categoryBudgetStatus(ref);
   }
 
   /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(Map<String, List<Transaction>> value) {
+  Override overrideWithValue(Map<String, CategoryBudgetStatus> value) {
     return $ProviderOverride(
       origin: this,
-      providerOverride: $SyncValueProvider<Map<String, List<Transaction>>>(
+      providerOverride: $SyncValueProvider<Map<String, CategoryBudgetStatus>>(
         value,
       ),
     );
   }
 }
 
-String _$dashboardTransactionsHash() =>
-    r'c817c47f1432012e9e46544f16aca45edaea215c';
+String _$categoryBudgetStatusHash() =>
+    r'7fb16a30656d4cce9eea01f6de9f8441ca9ac136';

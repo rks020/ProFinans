@@ -20,20 +20,19 @@ class AppTheme {
           borderRadius: BorderRadius.circular(20),
         ),
       ),
-      appBarTheme: const AppBarTheme(
+      appBarTheme: AppBarTheme(
         backgroundColor: backgroundColor,
         elevation: 0,
         centerTitle: false,
       ),
       textTheme: GoogleFonts.interTextTheme(
         ThemeData.dark().textTheme.copyWith(
-          titleLarge: const TextStyle(fontWeight: FontWeight.bold),
-          titleMedium: const TextStyle(fontWeight: FontWeight.bold),
+          titleLarge: TextStyle(fontWeight: FontWeight.bold),
+          titleMedium: TextStyle(fontWeight: FontWeight.bold),
         ),
       ),
-      colorScheme: const ColorScheme.dark(
+      colorScheme: ColorScheme.dark(
         surface: surfaceColor,
-        background: backgroundColor,
         primary: futureColor,
         secondary: incomeColor,
         error: expenseColor,

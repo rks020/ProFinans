@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$Category {
 
-@HiveField(0) String get name;@HiveField(1) int get colorCode;
+@HiveField(0) String get name;@HiveField(1) int get colorCode;@HiveField(2) double? get budgetLimit;@HiveField(3) TransactionType? get type;
 /// Create a copy of Category
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $CategoryCopyWith<Category> get copyWith => _$CategoryCopyWithImpl<Category>(thi
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Category&&(identical(other.name, name) || other.name == name)&&(identical(other.colorCode, colorCode) || other.colorCode == colorCode));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Category&&(identical(other.name, name) || other.name == name)&&(identical(other.colorCode, colorCode) || other.colorCode == colorCode)&&(identical(other.budgetLimit, budgetLimit) || other.budgetLimit == budgetLimit)&&(identical(other.type, type) || other.type == type));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,name,colorCode);
+int get hashCode => Object.hash(runtimeType,name,colorCode,budgetLimit,type);
 
 @override
 String toString() {
-  return 'Category(name: $name, colorCode: $colorCode)';
+  return 'Category(name: $name, colorCode: $colorCode, budgetLimit: $budgetLimit, type: $type)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $CategoryCopyWith<$Res>  {
   factory $CategoryCopyWith(Category value, $Res Function(Category) _then) = _$CategoryCopyWithImpl;
 @useResult
 $Res call({
-@HiveField(0) String name,@HiveField(1) int colorCode
+@HiveField(0) String name,@HiveField(1) int colorCode,@HiveField(2) double? budgetLimit,@HiveField(3) TransactionType? type
 });
 
 
@@ -65,11 +65,13 @@ class _$CategoryCopyWithImpl<$Res>
 
 /// Create a copy of Category
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? name = null,Object? colorCode = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? name = null,Object? colorCode = null,Object? budgetLimit = freezed,Object? type = freezed,}) {
   return _then(_self.copyWith(
 name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,colorCode: null == colorCode ? _self.colorCode : colorCode // ignore: cast_nullable_to_non_nullable
-as int,
+as int,budgetLimit: freezed == budgetLimit ? _self.budgetLimit : budgetLimit // ignore: cast_nullable_to_non_nullable
+as double?,type: freezed == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
+as TransactionType?,
   ));
 }
 
@@ -154,10 +156,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@HiveField(0)  String name, @HiveField(1)  int colorCode)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@HiveField(0)  String name, @HiveField(1)  int colorCode, @HiveField(2)  double? budgetLimit, @HiveField(3)  TransactionType? type)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Category() when $default != null:
-return $default(_that.name,_that.colorCode);case _:
+return $default(_that.name,_that.colorCode,_that.budgetLimit,_that.type);case _:
   return orElse();
 
 }
@@ -175,10 +177,10 @@ return $default(_that.name,_that.colorCode);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@HiveField(0)  String name, @HiveField(1)  int colorCode)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@HiveField(0)  String name, @HiveField(1)  int colorCode, @HiveField(2)  double? budgetLimit, @HiveField(3)  TransactionType? type)  $default,) {final _that = this;
 switch (_that) {
 case _Category():
-return $default(_that.name,_that.colorCode);case _:
+return $default(_that.name,_that.colorCode,_that.budgetLimit,_that.type);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -195,10 +197,10 @@ return $default(_that.name,_that.colorCode);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@HiveField(0)  String name, @HiveField(1)  int colorCode)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@HiveField(0)  String name, @HiveField(1)  int colorCode, @HiveField(2)  double? budgetLimit, @HiveField(3)  TransactionType? type)?  $default,) {final _that = this;
 switch (_that) {
 case _Category() when $default != null:
-return $default(_that.name,_that.colorCode);case _:
+return $default(_that.name,_that.colorCode,_that.budgetLimit,_that.type);case _:
   return null;
 
 }
@@ -210,11 +212,13 @@ return $default(_that.name,_that.colorCode);case _:
 @JsonSerializable()
 
 class _Category extends Category {
-   _Category({@HiveField(0) required this.name, @HiveField(1) required this.colorCode}): super._();
+   _Category({@HiveField(0) required this.name, @HiveField(1) required this.colorCode, @HiveField(2) this.budgetLimit, @HiveField(3) this.type}): super._();
   factory _Category.fromJson(Map<String, dynamic> json) => _$CategoryFromJson(json);
 
 @override@HiveField(0) final  String name;
 @override@HiveField(1) final  int colorCode;
+@override@HiveField(2) final  double? budgetLimit;
+@override@HiveField(3) final  TransactionType? type;
 
 /// Create a copy of Category
 /// with the given fields replaced by the non-null parameter values.
@@ -229,16 +233,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Category&&(identical(other.name, name) || other.name == name)&&(identical(other.colorCode, colorCode) || other.colorCode == colorCode));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Category&&(identical(other.name, name) || other.name == name)&&(identical(other.colorCode, colorCode) || other.colorCode == colorCode)&&(identical(other.budgetLimit, budgetLimit) || other.budgetLimit == budgetLimit)&&(identical(other.type, type) || other.type == type));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,name,colorCode);
+int get hashCode => Object.hash(runtimeType,name,colorCode,budgetLimit,type);
 
 @override
 String toString() {
-  return 'Category(name: $name, colorCode: $colorCode)';
+  return 'Category(name: $name, colorCode: $colorCode, budgetLimit: $budgetLimit, type: $type)';
 }
 
 
@@ -249,7 +253,7 @@ abstract mixin class _$CategoryCopyWith<$Res> implements $CategoryCopyWith<$Res>
   factory _$CategoryCopyWith(_Category value, $Res Function(_Category) _then) = __$CategoryCopyWithImpl;
 @override @useResult
 $Res call({
-@HiveField(0) String name,@HiveField(1) int colorCode
+@HiveField(0) String name,@HiveField(1) int colorCode,@HiveField(2) double? budgetLimit,@HiveField(3) TransactionType? type
 });
 
 
@@ -266,11 +270,13 @@ class __$CategoryCopyWithImpl<$Res>
 
 /// Create a copy of Category
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? name = null,Object? colorCode = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? name = null,Object? colorCode = null,Object? budgetLimit = freezed,Object? type = freezed,}) {
   return _then(_Category(
 name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,colorCode: null == colorCode ? _self.colorCode : colorCode // ignore: cast_nullable_to_non_nullable
-as int,
+as int,budgetLimit: freezed == budgetLimit ? _self.budgetLimit : budgetLimit // ignore: cast_nullable_to_non_nullable
+as double?,type: freezed == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
+as TransactionType?,
   ));
 }
 

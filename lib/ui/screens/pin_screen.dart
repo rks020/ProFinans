@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/app_providers.dart';
 import '../theme/app_theme.dart';
@@ -52,7 +53,7 @@ class _PinScreenState extends ConsumerState<PinScreen> {
           setState(() {
             _pin = "";
             _firstPin = null;
-            _errorMessage = "PIN'ler eşleşmiyor. Tekrar deneyin.";
+            _errorMessage = "pin.mismatch".tr();
           });
         }
       }
@@ -63,7 +64,7 @@ class _PinScreenState extends ConsumerState<PinScreen> {
       } else {
         setState(() {
           _pin = "";
-          _errorMessage = "Hatalı PIN. Tekrar deneyin.";
+          _errorMessage = "pin.incorrect".tr();
         });
       }
     }
@@ -71,9 +72,9 @@ class _PinScreenState extends ConsumerState<PinScreen> {
 
   @override
   Widget build(BuildContext context) {
-    String title = "PIN Kodunuzu Girin";
+    String title = "pin.enter_pin".tr();
     if (widget.isSetupMode) {
-      title = _firstPin == null ? "Yeni PIN Belirleyin" : "PIN'i Doğrulayın";
+      title = _firstPin == null ? "pin.set_new_pin".tr() : "pin.verify_pin".tr();
     }
 
     return Scaffold(
@@ -81,24 +82,24 @@ class _PinScreenState extends ConsumerState<PinScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            const Spacer(flex: 2),
-            const Icon(Icons.lock_outline, size: 64, color: AppTheme.futureColor),
-            const SizedBox(height: 24),
+            Spacer(flex: 2),
+            Icon(Icons.lock_outline, size: 64, color: AppTheme.futureColor),
+            SizedBox(height: 24),
             Text(
               title,
-              style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+              style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: 8),
             if (_errorMessage.isNotEmpty)
-              Text(_errorMessage, style: const TextStyle(color: AppTheme.expenseColor, fontSize: 14)),
-            const SizedBox(height: 32),
+              Text(_errorMessage, style: TextStyle(color: AppTheme.expenseColor, fontSize: 14)),
+            SizedBox(height: 32),
             // Pin dots
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: List.generate(4, (index) {
                 bool isFilled = index < _pin.length;
                 return Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 12),
+                  margin: EdgeInsets.symmetric(horizontal: 12),
                   width: 20,
                   height: 20,
                   decoration: BoxDecoration(
@@ -109,10 +110,10 @@ class _PinScreenState extends ConsumerState<PinScreen> {
                 );
               }),
             ),
-            const Spacer(flex: 2),
+            Spacer(flex: 2),
             // Keypad
             _buildKeypad(),
-            const SizedBox(height: 48),
+            SizedBox(height: 48),
           ],
         ),
       ),
@@ -131,9 +132,9 @@ class _PinScreenState extends ConsumerState<PinScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: row.map((key) {
-              if (key == "") return const SizedBox(width: 80, height: 80);
+              if (key == "") return SizedBox(width: 80, height: 80);
               return Padding(
-                padding: const EdgeInsets.all(12.0),
+                padding: EdgeInsets.all(12.0),
                 child: _KeyButton(
                   label: key,
                   onTap: () => _handleKeyPress(key),
@@ -164,14 +165,14 @@ class _KeyButton extends StatelessWidget {
         height: 70,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: isDelete ? Colors.transparent : Colors.white.withOpacity(0.05),
+          color: isDelete ? Colors.transparent : Colors.white.withValues(alpha: 0.05),
         ),
         alignment: Alignment.center,
         child: isDelete
-            ? const Icon(Icons.backspace_outlined, color: Colors.white70)
+            ? Icon(Icons.backspace_outlined, color: Colors.white70)
             : Text(
                 label,
-                style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w400),
+                style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w400),
               ),
       ),
     );

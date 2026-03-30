@@ -38,13 +38,15 @@ class TransactionAdapter extends TypeAdapter<Transaction> {
       reminderInterval: fields[16] == null
           ? ReminderInterval.none
           : fields[16] as ReminderInterval,
+      goalId: fields[17] as String?,
+      isSubscription: fields[18] == null ? false : fields[18] as bool,
     );
   }
 
   @override
   void write(BinaryWriter writer, Transaction obj) {
     writer
-      ..writeByte(17)
+      ..writeByte(19)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -78,7 +80,11 @@ class TransactionAdapter extends TypeAdapter<Transaction> {
       ..writeByte(15)
       ..write(obj.hasReminder)
       ..writeByte(16)
-      ..write(obj.reminderInterval);
+      ..write(obj.reminderInterval)
+      ..writeByte(17)
+      ..write(obj.goalId)
+      ..writeByte(18)
+      ..write(obj.isSubscription);
   }
 
   @override
@@ -121,6 +127,8 @@ _Transaction _$TransactionFromJson(Map<String, dynamic> json) => _Transaction(
         json['reminderInterval'],
       ) ??
       ReminderInterval.none,
+  goalId: json['goalId'] as String?,
+  isSubscription: json['isSubscription'] as bool? ?? false,
 );
 
 Map<String, dynamic> _$TransactionToJson(_Transaction instance) =>
@@ -142,6 +150,8 @@ Map<String, dynamic> _$TransactionToJson(_Transaction instance) =>
       'exchangeRate': instance.exchangeRate,
       'hasReminder': instance.hasReminder,
       'reminderInterval': _$ReminderIntervalEnumMap[instance.reminderInterval]!,
+      'goalId': instance.goalId,
+      'isSubscription': instance.isSubscription,
     };
 
 const _$TransactionTypeEnumMap = {

@@ -1,6 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:profinans/data/models/transaction.dart';
 import 'package:profinans/data/models/enums.dart';
+import 'package:profinans/data/models/category.dart';
+
 
 void main() {
   test('Transaction filtering logic test', () {
@@ -57,4 +59,20 @@ void main() {
     expect(upcoming.length, 1);
     expect(upcoming.first.id, '3');
   });
+
+  test('Budget calculation logic test', () {
+    final cat = Category(name: 'Food', colorCode: 0, budgetLimit: 1000);
+    final spent = 850.0;
+    
+    final percent = (spent / cat.budgetLimit!).clamp(0.0, 1.0);
+    final isOver = spent > cat.budgetLimit!;
+    
+    expect(percent, 0.85);
+    expect(isOver, false);
+    
+    final spentMore = 1200.0;
+    final isOverNow = spentMore > cat.budgetLimit!;
+    expect(isOverNow, true);
+  });
 }
+

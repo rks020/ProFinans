@@ -1,12 +1,15 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/models/app_settings.dart';
 import '../data/models/app_group.dart';
 import '../data/models/transaction.dart';
 import '../data/models/enums.dart';
 import '../data/models/category.dart';
+export 'goals_provider.dart';
 import '../data/services/currency_service.dart';
+
+import '../data/services/notification_service.dart';
 import 'repository_providers.dart';
+
 
 part 'app_providers.g.dart';
 
@@ -37,6 +40,12 @@ class AppSettingsNotifier extends _$AppSettingsNotifier {
 
   Future<void> updatePinCode(String? pin) async {
     final updated = state.copyWith(pinCode: pin);
+    await ref.read(settingsRepositoryProvider).saveSettings(updated);
+    state = updated;
+  }
+
+  Future<void> updateCurrency(String currency) async {
+    final updated = state.copyWith(selectedCurrency: currency);
     await ref.read(settingsRepositoryProvider).saveSettings(updated);
     state = updated;
   }
@@ -118,7 +127,10 @@ class TransactionsNotifier extends _$TransactionsNotifier {
       // YOKSA: Listenin sonuna ekle (Insert)
       state = [...state, transaction];
     }
+
+    _checkBudgetAlert(transaction.category);
   }
+
 
   Future<void> addTransactions(List<Transaction> transactions) async {
     await ref.read(transactionsRepositoryProvider).saveTransactions(transactions);
@@ -186,7 +198,29 @@ class TransactionsNotifier extends _$TransactionsNotifier {
       }
       return t;
     }).toList();
+
+    _checkBudgetAlert(existing.category);
   }
+
+
+  void _checkBudgetAlert(String categoryName) {
+    // Kategori bütçe durumunu al
+    final statusMap = ref.read(categoryBudgetStatusProvider);
+    final status = statusMap[categoryName];
+    
+    if (status != null && status.limit != null && status.limit! > 0) {
+      // Eğer %80'i geçtiyse veya aşıldıysa bildirim gönder
+      if (status.spent >= status.limit! || status.spent >= status.limit! * 0.8) {
+        NotificationService().showBudgetAlert(
+          categoryName: categoryName,
+          spent: status.spent,
+          limit: status.limit!,
+          currencySymbol: ref.read(appSettingsProvider).selectedCurrency,
+        );
+      }
+    }
+  }
+
 
   Future<void> togglePaid(String id) async {
     final transaction = state.firstWhere((t) => t.id == id);
@@ -249,15 +283,67 @@ class CategoriesNotifier extends _$CategoriesNotifier {
     
     if (categories.isEmpty) {
       final defaults = [
-        Category(name: 'Market', colorCode: 0xFFFB8C00), // Hex: Orange
-        Category(name: 'Kira', colorCode: 0xFF8E24AA),  // Hex: Purple
-        Category(name: 'Fatura', colorCode: 0xFFE53935), // Hex: Red
-        Category(name: 'Maaş', colorCode: 0xFF43A047),  // Hex: Green
-        Category(name: 'Genel', colorCode: 0xFF1E88E5),  // Hex: Blue
+        Category(name: 'categories.market', colorCode: 0xFFFB8C00, type: TransactionType.expense), 
+        Category(name: 'categories.rent', colorCode: 0xFF8E24AA, type: TransactionType.expense),  
+        Category(name: 'categories.bill', colorCode: 0xFFE53935, type: TransactionType.expense), 
+        Category(name: 'categories.salary', colorCode: 0xFF43A047, type: TransactionType.income),  
+        Category(name: 'categories.general', colorCode: 0xFF1E88E5, type: TransactionType.expense),  
       ];
       repo.saveCategories(defaults);
       return defaults;
     }
+
+    // Legacy migration: Convert Turkish literal names to translation keys and assign types
+    final Map<String, String> migrationMap = {
+      'Market': 'categories.market',
+      'Kira': 'categories.rent',
+      'Fatura': 'categories.bill',
+      'Maaş': 'categories.salary',
+      'Genel': 'categories.general',
+    };
+
+    final Map<String, TransactionType> typeMap = {
+      'categories.market': TransactionType.expense,
+      'categories.rent': TransactionType.expense,
+      'categories.bill': TransactionType.expense,
+      'categories.salary': TransactionType.income,
+      'categories.general': TransactionType.expense,
+    };
+
+    bool changed = false;
+    final Map<String, Category> uniqueCategories = {};
+
+    for (var cat in categories) {
+      String newName = migrationMap[cat.name] ?? cat.name;
+      TransactionType? newType = typeMap[newName] ?? cat.type;
+      
+      // If the type is still null but it's one of our known defaults, assign it
+      if (newType == null && typeMap.containsKey(newName)) {
+        newType = typeMap[newName];
+      }
+
+      final processedCat = (newName != cat.name || newType != cat.type) 
+        ? cat.copyWith(name: newName, type: newType)
+        : cat;
+      
+      if (processedCat != cat) changed = true;
+
+      // Deduplication: if we already have this category name, we skip it
+      // This solves the "çiftlendi" issue
+      if (!uniqueCategories.containsKey(processedCat.name)) {
+        uniqueCategories[processedCat.name] = processedCat;
+      } else {
+        changed = true; // We are removing a duplicate
+      }
+    }
+
+    final finalCategories = uniqueCategories.values.toList();
+
+    if (changed) {
+      repo.saveCategories(finalCategories);
+      return finalCategories;
+    }
+
     return categories;
   }
 
@@ -391,9 +477,47 @@ Map<String, List<Transaction>> _calculateDashboardData(List<Transaction> transac
   };
 }
 
-@riverpod
-Map<String, List<Transaction>> dashboardTransactions(Ref ref) {
-  final transactions = ref.watch(filteredTransactionsProvider);
-  final selectedDate = ref.watch(selectedDateProvider);
-  return _calculateDashboardData(transactions, selectedDate);
+
+class CategoryBudgetStatus {
+  final String categoryName;
+  final double spent;
+  final double? limit;
+  final int colorCode;
+
+  CategoryBudgetStatus({
+    required this.categoryName,
+    required this.spent,
+    this.limit,
+    required this.colorCode,
+  });
+
+  double get percent => (limit != null && limit! > 0) ? (spent / limit!).clamp(0.0, 1.0) : 0.0;
+  bool get isOverBudget => limit != null && spent > limit!;
 }
+
+@riverpod
+Map<String, CategoryBudgetStatus> categoryBudgetStatus(Ref ref) {
+  final transactions = ref.watch(expenseTransactionsProvider);
+  final categories = ref.watch(categoriesProvider);
+  
+  final Map<String, double> spentPerCategory = {};
+  for (final t in transactions) {
+    spentPerCategory[t.category] = (spentPerCategory[t.category] ?? 0) + t.amount;
+  }
+  
+  final Map<String, CategoryBudgetStatus> statusMap = {};
+  for (final cat in categories) {
+    statusMap[cat.name] = CategoryBudgetStatus(
+      categoryName: cat.name,
+      spent: spentPerCategory[cat.name] ?? 0,
+      limit: cat.budgetLimit,
+      colorCode: cat.colorCode,
+    );
+  }
+  
+  return statusMap;
+}
+
+
+
+

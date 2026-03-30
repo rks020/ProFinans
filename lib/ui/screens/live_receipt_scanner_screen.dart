@@ -1,13 +1,15 @@
 import 'dart:io';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/services.dart';
+import 'dart:ui' as ui;
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import '../../data/services/receipt_scanner_service.dart';
 import '../theme/app_theme.dart';
 
 class LiveReceiptScannerScreen extends StatefulWidget {
-  const LiveReceiptScannerScreen({Key? key}) : super(key: key);
+  const LiveReceiptScannerScreen({super.key});
 
   @override
   State<LiveReceiptScannerScreen> createState() => _LiveReceiptScannerScreenState();
@@ -109,17 +111,17 @@ class _LiveReceiptScannerScreenState extends State<LiveReceiptScannerScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Padding(
-                padding: EdgeInsets.all(16.0),
+              Padding(
+                padding: const EdgeInsets.all(16.0),
                 child: Text(
-                  'Birden fazla tutar algılandı.\nLütfen doğru tutarı seçin:',
+                  'receipt_scanner.multiple_amounts_title'.tr(),
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                  style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
                 ),
               ),
               const Divider(color: Colors.white24, height: 1),
               ...amounts.map((amount) => ListTile(
-                    title: Text('${amount.toStringAsFixed(2).replaceAll('.', ',')} ₺', style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                    title: Text('${amount.toStringAsFixed(2).replaceAll('.', ',')} ${context.locale.languageCode == 'tr' ? '₺' : '\$'}', style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
                     trailing: const Icon(Icons.check_circle_outline, color: AppTheme.futureColor),
                     onTap: () => Navigator.pop(context, amount),
                   )),
@@ -200,7 +202,7 @@ class _LiveReceiptScannerScreenState extends State<LiveReceiptScannerScreen> {
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
-        title: const Text('Fiş Tara', style: TextStyle(color: Colors.white)),
+        title: Text('receipt_scanner.title'.tr(), style: const TextStyle(color: Colors.white)),
         backgroundColor: Colors.black,
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
@@ -219,7 +221,7 @@ class _LiveReceiptScannerScreenState extends State<LiveReceiptScannerScreen> {
                 
                 // Overlay for guide frame
                 Container(
-                  decoration: ShapeDecoration(
+                  decoration: const ShapeDecoration(
                     shape: _ScannerOverlayShape(
                       borderColor: AppTheme.futureColor,
                       borderWidth: 3.0,
@@ -227,12 +229,12 @@ class _LiveReceiptScannerScreenState extends State<LiveReceiptScannerScreen> {
                   ),
                 ),
                 
-                const Positioned(
+                Positioned(
                   bottom: 50,
                   left: 0,
                   right: 0,
                   child: Text(
-                    'Okutmak istediğiniz tutarı çerçevenin içine alın',
+                    'receipt_scanner.guide_text'.tr(),
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: Colors.white,
@@ -258,18 +260,18 @@ class _ScannerOverlayShape extends ShapeBorder {
   });
 
   @override
-  EdgeInsetsGeometry get dimensions => const EdgeInsets.all(10.0);
+  EdgeInsetsGeometry get dimensions => EdgeInsets.all(10.0);
 
   @override
-  Path getInnerPath(Rect rect, {TextDirection? textDirection}) {
+  Path getInnerPath(Rect rect, {ui.TextDirection? textDirection}) {
     return Path()
       ..fillType = PathFillType.evenOdd
       ..addPath(getOuterPath(rect), Offset.zero);
   }
 
   @override
-  Path getOuterPath(Rect rect, {TextDirection? textDirection}) {
-    Path _getClipPath(Rect rect) {
+  Path getOuterPath(Rect rect, {ui.TextDirection? textDirection}) {
+    Path getClipPath(Rect rect) {
       return Path()
         ..addRect(rect)
         // Center cutout
@@ -278,15 +280,15 @@ class _ScannerOverlayShape extends ShapeBorder {
                 center: rect.center,
                 width: rect.width * 0.8,
                 height: rect.width * 0.4),
-            const Radius.circular(10)))
+            Radius.circular(10)))
         ..fillType = PathFillType.evenOdd;
     }
 
-    return _getClipPath(rect);
+    return getClipPath(rect);
   }
 
   @override
-  void paint(Canvas canvas, Rect rect, {TextDirection? textDirection}) {
+  void paint(Canvas canvas, Rect rect, {ui.TextDirection? textDirection}) {
     final centerRect = Rect.fromCenter(
       center: rect.center,
       width: rect.width * 0.8,
@@ -300,7 +302,7 @@ class _ScannerOverlayShape extends ShapeBorder {
     // First draw standard black54 overlay matching the cutout
     final backgroundPath = Path()
       ..addRect(rect)
-      ..addRRect(RRect.fromRectAndRadius(centerRect, const Radius.circular(10)))
+      ..addRRect(RRect.fromRectAndRadius(centerRect, Radius.circular(10)))
       ..fillType = PathFillType.evenOdd;
       
     canvas.drawPath(backgroundPath, backgroundPaint);
@@ -311,7 +313,7 @@ class _ScannerOverlayShape extends ShapeBorder {
       ..style = PaintingStyle.stroke
       ..strokeWidth = borderWidth;
       
-    canvas.drawRRect(RRect.fromRectAndRadius(centerRect, const Radius.circular(10)), borderPaint);
+    canvas.drawRRect(RRect.fromRectAndRadius(centerRect, Radius.circular(10)), borderPaint);
   }
 
   @override

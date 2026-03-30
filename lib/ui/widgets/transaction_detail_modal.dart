@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 import '../../data/models/transaction.dart';
 import '../../data/models/enums.dart';
 import '../../data/services/notification_service.dart';
@@ -18,18 +18,22 @@ class TransactionDetailModal extends ConsumerStatefulWidget {
 
 class _TransactionDetailModalState extends ConsumerState<TransactionDetailModal> {
   late ReminderInterval _reminderInterval;
+  late bool _isSubscription;
 
   @override
   void initState() {
     super.initState();
     _reminderInterval = widget.transaction.reminderInterval;
+    _isSubscription = widget.transaction.isSubscription;
   }
 
   @override
   Widget build(BuildContext context) {
     final settings = ref.watch(appSettingsProvider);
     final isPrivacyMode = settings.isPrivacyMode;
-    final format = NumberFormat.currency(symbol: '₺', decimalDigits: 0, locale: 'tr_TR');
+    final currencyCode = settings.selectedCurrency;
+    final displaySymbol = currencyCode == 'TRY' ? '₺' : (currencyCode == 'USD' ? '\$' : '€');
+    final format = NumberFormat.currency(symbol: displaySymbol, decimalDigits: 0, locale: context.locale.languageCode);
     final transaction = widget.transaction;
 
     DateTime? endDate;
@@ -53,7 +57,7 @@ class _TransactionDetailModalState extends ConsumerState<TransactionDetailModal>
       }
     }
 
-    final amountStr = isPrivacyMode ? '***₺' : format.format(transaction.amount);
+    final amountStr = isPrivacyMode ? '***$displaySymbol' : format.format(transaction.amount);
 
     Color headerColor;
     IconData headerIcon;
@@ -67,14 +71,14 @@ class _TransactionDetailModalState extends ConsumerState<TransactionDetailModal>
         headerIcon = Icons.arrow_upward;
         break;
       case TransactionType.investment:
-        headerColor = const Color(0xFFFFD700);
+        headerColor = Color(0xFFFFD700);
         headerIcon = Icons.savings;
         break;
     }
 
     return Container(
-      padding: const EdgeInsets.only(top: 12, left: 24, right: 24, bottom: 40),
-      decoration: const BoxDecoration(
+      padding: EdgeInsets.only(top: 12, left: 24, right: 24, bottom: 40),
+      decoration: BoxDecoration(
         color: AppTheme.backgroundColor,
         borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
       ),
@@ -89,36 +93,36 @@ class _TransactionDetailModalState extends ConsumerState<TransactionDetailModal>
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Colors.grey.withOpacity(0.3),
+                  color: Colors.grey.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
 
             // Hatırlatıcı (Only for expenses)
             if (transaction.type == TransactionType.expense)
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
                   color: AppTheme.surfaceColor,
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.notifications_active, color: Colors.grey, size: 20),
-                    const SizedBox(width: 8),
-                    const Text(
-                      'Hatırlatıcı Zamanı',
+                    Icon(Icons.notifications_active, color: Colors.grey, size: 20),
+                    SizedBox(width: 8),
+                    Text(
+                      'transaction_detail.reminder_time'.tr(),
                       style: TextStyle(color: Colors.white, fontSize: 14),
                     ),
-                    const Spacer(),
+                    Spacer(),
                     DropdownButton<ReminderInterval>(
                       dropdownColor: AppTheme.surfaceColor,
                       value: _reminderInterval,
-                      underline: const SizedBox(),
-                      icon: const Icon(Icons.arrow_drop_down, color: AppTheme.futureColor),
-                      style: const TextStyle(color: Colors.white, fontSize: 14),
+                      underline: SizedBox(),
+                      icon: Icon(Icons.arrow_drop_down, color: AppTheme.futureColor),
+                      style: TextStyle(color: Colors.white, fontSize: 14),
                       items: ReminderInterval.values.map((interval) {
                         return DropdownMenuItem(
                           value: interval,
@@ -136,9 +140,9 @@ class _TransactionDetailModalState extends ConsumerState<TransactionDetailModal>
                             context: context,
                             builder: (ctx) => AlertDialog(
                               backgroundColor: AppTheme.surfaceColor,
-                              title: const Text('Gelecek Ödemeler', style: TextStyle(color: Colors.white)),
-                              content: const Text(
-                                'Bu hatırlatıcı ayarını gelecek tüm tekrarlayan/taksitli ödemelere de uygulamak istiyor musunuz?',
+                              title: Text('transaction_detail.recurring_future'.tr(), style: TextStyle(color: Colors.white)),
+                              content: Text(
+                                'transaction_detail.recurring_future_desc'.tr(),
                                 style: TextStyle(color: Colors.grey),
                               ),
                               actions: [
@@ -147,14 +151,14 @@ class _TransactionDetailModalState extends ConsumerState<TransactionDetailModal>
                                     Navigator.pop(ctx);
                                     _updateReminder(transaction, val, updateAll: false);
                                   },
-                                  child: const Text('Hayır, Sadece Bu İşlem', style: TextStyle(color: Colors.grey)),
+                                  child: Text('transaction_detail.no'.tr(), style: TextStyle(color: Colors.grey)),
                                 ),
                                 TextButton(
                                   onPressed: () async {
                                     Navigator.pop(ctx);
                                     _updateReminder(transaction, val, updateAll: true);
                                   },
-                                  child: const Text('Evet, Geri Kalan Tümüne Uygula', style: TextStyle(color: AppTheme.futureColor)),
+                                  child: Text('transaction_detail.yes'.tr(), style: TextStyle(color: AppTheme.futureColor)),
                                 ),
                               ],
                             ),
@@ -167,7 +171,43 @@ class _TransactionDetailModalState extends ConsumerState<TransactionDetailModal>
                   ],
                 ),
               ),
-            const SizedBox(height: 24),
+            
+            // Abonelik Toggle (New)
+            if (transaction.type == TransactionType.expense) ...[
+              SizedBox(height: 12),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppTheme.surfaceColor,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: _isSubscription ? AppTheme.futureColor.withValues(alpha: 0.3) : Colors.transparent),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      _isSubscription ? Icons.subscriptions : Icons.subscriptions_outlined, 
+                      color: _isSubscription ? AppTheme.futureColor : Colors.grey, 
+                      size: 20
+                    ),
+                    SizedBox(width: 8),
+                    Text(
+                      'transaction_detail.mark_subscription'.tr(),
+                      style: TextStyle(color: Colors.white, fontSize: 14),
+                    ),
+                    Spacer(),
+                    Switch(
+                      value: _isSubscription,
+                      activeThumbColor: AppTheme.futureColor,
+                      onChanged: (val) {
+                        setState(() => _isSubscription = val);
+                        _updateSubscription(transaction, val);
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ],
+            SizedBox(height: 24),
 
             // Header
             Row(
@@ -180,9 +220,9 @@ class _TransactionDetailModalState extends ConsumerState<TransactionDetailModal>
                     children: [
                       Text(
                         transaction.title,
-                        style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+                        style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
                       ),
-                      const SizedBox(height: 4),
+                      SizedBox(height: 4),
                       Row(
                         children: [
                           Container(
@@ -193,9 +233,9 @@ class _TransactionDetailModalState extends ConsumerState<TransactionDetailModal>
                               shape: BoxShape.circle,
                             ),
                           ),
-                          const SizedBox(width: 8),
+                          SizedBox(width: 8),
                           Text(
-                            transaction.category,
+                            transaction.category.tr(),
                             style: TextStyle(color: Colors.grey[400], fontSize: 14),
                           ),
                         ],
@@ -204,15 +244,15 @@ class _TransactionDetailModalState extends ConsumerState<TransactionDetailModal>
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   decoration: BoxDecoration(
-                    color: headerColor.withOpacity(0.15),
+                    color: headerColor.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Column(
                     children: [
                       Icon(headerIcon, color: headerColor),
-                      const SizedBox(height: 8),
+                      SizedBox(height: 8),
                       Text(
                         amountStr,
                         style: TextStyle(color: headerColor, fontSize: 18, fontWeight: FontWeight.bold),
@@ -222,72 +262,72 @@ class _TransactionDetailModalState extends ConsumerState<TransactionDetailModal>
                 ),
               ],
             ),
-            const SizedBox(height: 32),
+            SizedBox(height: 32),
 
             // Details List
             _buildDetailRow(
               icon: Icons.calendar_today,
-              label: 'Tarih',
-              value: DateFormat('d MMMM yyyy HH:mm', 'tr_TR').format(transaction.date),
+              label: 'transaction_detail.date'.tr(),
+              value: DateFormat('d MMMM yyyy HH:mm', context.locale.languageCode).format(transaction.date),
             ),
 
             _buildDetailRow(
               icon: transaction.isPaid ? Icons.check_circle : Icons.pending,
               iconColor: transaction.isPaid ? AppTheme.incomeColor : Colors.orange,
-              label: 'Durum',
-              value: transaction.isPaid ? 'Ödendi' : 'Bekliyor',
+              label: 'transaction_detail.status'.tr(),
+              value: transaction.isPaid ? 'transaction_detail.paid'.tr() : 'transaction_detail.pending'.tr(),
               valueColor: transaction.isPaid ? AppTheme.incomeColor : Colors.orange,
             ),
 
             if (transaction.installmentTotal != null && transaction.installmentTotal! > 1) ...[
-              const Divider(color: Colors.white10, height: 32),
+              Divider(color: Colors.white10, height: 32),
               _buildDetailRow(
                 icon: Icons.credit_card,
-                label: 'Taksit',
+                label: 'transaction_detail.installment'.tr(),
                 value: '${transaction.installmentCurrent} / ${transaction.installmentTotal}',
               ),
               _buildDetailRow(
                 icon: Icons.account_balance_wallet_outlined,
-                label: 'Toplam Tutar',
-                value: isPrivacyMode ? '***₺' : format.format(transaction.amount * transaction.installmentTotal!),
+                label: 'transaction_detail.total_amount'.tr(),
+                value: isPrivacyMode ? '***$displaySymbol' : format.format(transaction.amount * transaction.installmentTotal!),
               ),
             ],
 
             if (transaction.recurrenceRule != RecurrenceRule.none && endDate != null) ...[
-              const Divider(color: Colors.white10, height: 32),
+              Divider(color: Colors.white10, height: 32),
               _buildDetailRow(
                 icon: Icons.repeat,
-                label: 'Tekrar Tipi',
+                label: 'transaction_detail.recurrence_type'.tr(),
                 value: _getRecurrenceLabel(transaction.recurrenceRule, isFinite: true),
               ),
               _buildDetailRow(
                 icon: Icons.account_balance_wallet_outlined,
-                label: 'Toplam Tutar',
-                value: isPrivacyMode ? '***₺' : format.format(transaction.amount * totalRelated),
+                label: 'transaction_detail.total_amount'.tr(),
+                value: isPrivacyMode ? '***$displaySymbol' : format.format(transaction.amount * totalRelated),
               ),
               _buildDetailRow(
                 icon: Icons.event_available,
-                label: 'Bitiş Tarihi',
-                value: DateFormat('MMMM yyyy', 'tr_TR').format(endDate),
+                label: 'transaction_detail.end_date'.tr(),
+                value: DateFormat('MMMM yyyy', context.locale.languageCode).format(endDate),
               ),
               _buildDetailRow(
                 icon: Icons.pie_chart_outline,
-                label: 'Ödenen / Toplam',
-                value: '$paidRelated / $totalRelated İşlem',
+                label: 'transaction_detail.paid_total'.tr(),
+                value: 'transaction_detail.transactions_count'.tr(namedArgs: {'count': '$paidRelated / $totalRelated'}),
               ),
             ],
 
-            const SizedBox(height: 32),
+            SizedBox(height: 32),
 
             // Close Button
             ElevatedButton(
               onPressed: () => Navigator.pop(context),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.surfaceColor,
-                padding: const EdgeInsets.symmetric(vertical: 16),
+                padding: EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               ),
-              child: const Text('Kapat', style: TextStyle(color: Colors.white, fontSize: 16)),
+              child: Text('transaction_detail.close'.tr(), style: TextStyle(color: Colors.white, fontSize: 16)),
             ),
           ],
         ),
@@ -303,20 +343,20 @@ class _TransactionDetailModalState extends ConsumerState<TransactionDetailModal>
     Color valueColor = Colors.white,
   }) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 16.0),
+      padding: EdgeInsets.only(bottom: 16.0),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(10),
+            padding: EdgeInsets.all(10),
             decoration: BoxDecoration(
               color: AppTheme.surfaceColor,
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(icon, color: iconColor, size: 20),
           ),
-          const SizedBox(width: 16),
-          Text(label, style: const TextStyle(color: Colors.grey, fontSize: 16)),
-          const Spacer(),
+          SizedBox(width: 16),
+          Text(label, style: TextStyle(color: Colors.grey, fontSize: 16)),
+          Spacer(),
           Text(value, style: TextStyle(color: valueColor, fontSize: 16, fontWeight: FontWeight.bold)),
         ],
       ),
@@ -325,29 +365,28 @@ class _TransactionDetailModalState extends ConsumerState<TransactionDetailModal>
 
   String _getRecurrenceLabel(RecurrenceRule rule, {bool isFinite = false}) {
     switch (rule) {
-      case RecurrenceRule.none: return 'Bir kez';
-      case RecurrenceRule.daily: return 'Her gün';
-      case RecurrenceRule.weekly: return 'Her hafta';
-      case RecurrenceRule.biweekly: return 'Her 2 haftada bir';
-      case RecurrenceRule.monthly: return isFinite ? 'Sonlu Ödeme (Aylık)' : 'Her ay';
-      case RecurrenceRule.quarterly: return 'Her 3 ayda bir';
-      case RecurrenceRule.semiannually: return 'Her 6 ayda bir';
-      case RecurrenceRule.yearly: return 'Her yıl';
-      case RecurrenceRule.firstWorkday: return 'Her ayın ilk iş günü';
-      case RecurrenceRule.lastWorkday: return 'Her ayın son iş günü';
-      default: return 'Bir kez';
+      case RecurrenceRule.none: return 'recurrence.none'.tr();
+      case RecurrenceRule.daily: return 'recurrence.daily'.tr();
+      case RecurrenceRule.weekly: return 'recurrence.weekly'.tr();
+      case RecurrenceRule.biweekly: return 'recurrence.biweekly'.tr();
+      case RecurrenceRule.monthly: return 'recurrence.monthly'.tr();
+      case RecurrenceRule.quarterly: return 'recurrence.quarterly'.tr();
+      case RecurrenceRule.semiannually: return 'recurrence.semiannually'.tr();
+      case RecurrenceRule.yearly: return 'recurrence.yearly'.tr();
+      case RecurrenceRule.firstWorkday: return 'recurrence.firstWorkday'.tr();
+      case RecurrenceRule.lastWorkday: return 'recurrence.lastWorkday'.tr();
     }
   }
 
   String _getReminderIntervalLabel(ReminderInterval interval) {
     switch (interval) {
-      case ReminderInterval.none: return 'Yok';
-      case ReminderInterval.thirtyMinutes: return '30 Dakika Önce';
-      case ReminderInterval.oneHour: return '1 Saat Önce';
-      case ReminderInterval.twelveHours: return '12 Saat Önce';
-      case ReminderInterval.oneDay: return '1 Gün Önce';
-      case ReminderInterval.twoDays: return '2 Gün Önce';
-      case ReminderInterval.oneWeek: return '1 Hafta Önce';
+      case ReminderInterval.none: return 'reminder.none'.tr();
+      case ReminderInterval.thirtyMinutes: return 'reminder.30_min'.tr();
+      case ReminderInterval.oneHour: return 'reminder.1_hour'.tr();
+      case ReminderInterval.twelveHours: return 'reminder.12_hours'.tr();
+      case ReminderInterval.oneDay: return 'reminder.1_day'.tr();
+      case ReminderInterval.twoDays: return 'reminder.2_days'.tr();
+      case ReminderInterval.oneWeek: return 'reminder.1_week'.tr();
     }
   }
 
@@ -364,7 +403,7 @@ class _TransactionDetailModalState extends ConsumerState<TransactionDetailModal>
           t.groupId == transaction.groupId &&
           t.title == transaction.title &&
           t.amount == transaction.amount &&
-          t.date.isAfter(transaction.date.subtract(const Duration(days: 1)))
+          t.date.isAfter(transaction.date.subtract(Duration(days: 1)))
         ).toList();
 
         for (var t in relatedTransactions) {
@@ -374,7 +413,7 @@ class _TransactionDetailModalState extends ConsumerState<TransactionDetailModal>
           );
           await ref.read(transactionsProvider.notifier).addTransaction(tUpdated);
           if (val != ReminderInterval.none) {
-            await NotificationService().scheduleTransactionReminder(tUpdated);
+            await NotificationService().scheduleTransactionReminder(tUpdated, ref.read(appSettingsProvider).selectedCurrency);
           } else {
             await NotificationService().cancelReminder(tUpdated.id);
           }
@@ -382,13 +421,30 @@ class _TransactionDetailModalState extends ConsumerState<TransactionDetailModal>
       } else {
         await ref.read(transactionsProvider.notifier).addTransaction(updatedTransaction);
         if (val != ReminderInterval.none) {
-          await NotificationService().scheduleTransactionReminder(updatedTransaction);
+          await NotificationService().scheduleTransactionReminder(updatedTransaction, ref.read(appSettingsProvider).selectedCurrency);
         } else {
           await NotificationService().cancelReminder(updatedTransaction.id);
         }
       }
     } catch (e) {
       debugPrint('Error updating reminder status: $e');
+    }
+  }
+
+  void _updateSubscription(Transaction transaction, bool val) async {
+    try {
+      final updatedTransaction = transaction.copyWith(isSubscription: val);
+      await ref.read(transactionsProvider.notifier).addTransaction(updatedTransaction);
+      
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(val ? 'transaction_detail.subscription_marked'.tr() : 'transaction_detail.subscription_unmarked'.tr()),
+          duration: Duration(seconds: 1),
+        ),
+      );
+    } catch (e) {
+      debugPrint('Error updating subscription status: $e');
     }
   }
 }

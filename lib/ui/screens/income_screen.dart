@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/app_providers.dart';
 import '../../data/models/transaction.dart';
 import '../../data/models/enums.dart'; // TransactionType için
 import '../theme/app_theme.dart';
-import '../widgets/add_transaction_modal.dart';
 import '../widgets/date_selector.dart';
-import 'dashboard_screen.dart'; // Reuse some widgets
+import '../widgets/add_transaction_modal.dart';
+import 'dashboard_screen.dart'; // Needed for GroupSelector
 
 class IncomeScreen extends ConsumerWidget {
   const IncomeScreen({super.key});
@@ -25,14 +26,10 @@ class IncomeScreen extends ConsumerWidget {
             icon: Icon(appSettings.isPrivacyMode ? Icons.visibility_off_outlined : Icons.visibility_outlined), 
             onPressed: () => ref.read(appSettingsProvider.notifier).togglePrivacyMode(),
           ),
-          IconButton(
-            icon: const Icon(Icons.calendar_month_outlined), 
-            onPressed: () => _showSoon(context),
-          ),
           Padding(
-            padding: const EdgeInsets.only(right: 8.0),
+            padding: EdgeInsets.only(right: 8.0),
             child: IconButton(
-              icon: const Icon(Icons.add_circle, color: AppTheme.futureColor, size: 32),
+              icon: Icon(Icons.add_circle, color: AppTheme.futureColor, size: 32),
               onPressed: () {
                 showModalBottomSheet(
                   context: context,
@@ -53,20 +50,11 @@ class IncomeScreen extends ConsumerWidget {
           children: [
             const DateSelector(),
             Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: EdgeInsets.all(16.0),
               child: _IncomeSummaryCards(data: dashboardData),
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  void _showSoon(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Bu özellik yakında eklenecek'),
-        duration: Duration(seconds: 1),
       ),
     );
   }
@@ -82,16 +70,16 @@ class _IncomeSummaryCards extends StatelessWidget {
     return Column(
       children: [
         VerticalSummaryCard(
-          title: 'Gelecek Gelir',
+          title: 'income_screen.upcoming_income'.tr(),
           transactions: data['upcoming'] ?? [],
-          color: const Color(0xFF0F141A),
+          color: Color(0xFF0F141A),
           textColor: AppTheme.futureColor,
         ),
-        const SizedBox(height: 12),
+        SizedBox(height: 12),
         VerticalSummaryCard(
-          title: 'Alınan',
+          title: 'income_screen.received'.tr(),
           transactions: data['paid'] ?? [],
-          color: const Color(0xFF0F1A12),
+          color: Color(0xFF0F1A12),
           textColor: AppTheme.incomeColor,
         ),
       ],

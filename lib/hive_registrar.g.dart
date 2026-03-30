@@ -7,6 +7,7 @@ import 'package:profinans/data/models/app_group.dart';
 import 'package:profinans/data/models/app_settings.dart';
 import 'package:profinans/data/models/category.dart';
 import 'package:profinans/data/models/enums.dart';
+import 'package:profinans/data/models/goal.dart';
 import 'package:profinans/data/models/transaction.dart';
 
 extension HiveRegistrar on HiveInterface {
@@ -14,6 +15,7 @@ extension HiveRegistrar on HiveInterface {
     registerAdapter(AppGroupAdapter());
     registerAdapter(AppSettingsAdapter());
     registerAdapter(CategoryAdapter());
+    registerAdapter(GoalAdapter());
     registerAdapter(RecurrenceRuleAdapter());
     registerAdapter(ReminderIntervalAdapter());
     registerAdapter(TransactionAdapter());
@@ -26,6 +28,7 @@ extension IsolatedHiveRegistrar on IsolatedHiveInterface {
     registerAdapter(AppGroupAdapter());
     registerAdapter(AppSettingsAdapter());
     registerAdapter(CategoryAdapter());
+    registerAdapter(GoalAdapter());
     registerAdapter(RecurrenceRuleAdapter());
     registerAdapter(ReminderIntervalAdapter());
     registerAdapter(TransactionAdapter());

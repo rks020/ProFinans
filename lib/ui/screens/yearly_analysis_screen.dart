@@ -1,7 +1,7 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 import '../../providers/app_providers.dart';
 import '../../data/models/transaction.dart';
 import '../../data/models/enums.dart';
@@ -22,6 +22,7 @@ class _YearlyAnalysisScreenState extends ConsumerState<YearlyAnalysisScreen> {
     final transactions = ref.watch(allGroupTransactionsProvider);
     final settings = ref.watch(appSettingsProvider);
     final currencySymbol = settings.selectedCurrency;
+    final displaySymbol = currencySymbol == 'TRY' ? '₺' : (currencySymbol == 'USD' ? '\$' : '€');
 
     // Filter transactions by year
     final yearTransactions = transactions.where((t) => t.date.year == _selectedYear).toList();
@@ -36,15 +37,15 @@ class _YearlyAnalysisScreenState extends ConsumerState<YearlyAnalysisScreen> {
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
-        title: const Text('Yıllık Analiz Raporu'),
+        title: Text('yearly_analysis.title'.tr()),
         backgroundColor: AppTheme.backgroundColor,
         actions: [
           DropdownButton<int>(
             dropdownColor: AppTheme.surfaceColor,
             value: _selectedYear,
-            underline: const SizedBox(),
-            icon: const Icon(Icons.keyboard_arrow_down, color: AppTheme.futureColor),
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            underline: SizedBox(),
+            icon: Icon(Icons.keyboard_arrow_down, color: AppTheme.futureColor),
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
             items: List.generate(5, (index) => DateTime.now().year - index)
                 .map((year) => DropdownMenuItem(
                       value: year,
@@ -55,18 +56,18 @@ class _YearlyAnalysisScreenState extends ConsumerState<YearlyAnalysisScreen> {
               if (value != null) setState(() => _selectedYear = value);
             },
           ),
-          const SizedBox(width: 16),
+          SizedBox(width: 16),
         ],
       ),
       body: yearTransactions.isEmpty
           ? Center(
               child: Text(
-                '$_selectedYear yılına ait veri bulunamadı.',
-                style: const TextStyle(color: Colors.grey),
+                'yearly_analysis.no_data'.tr(namedArgs: {'year': _selectedYear.toString()}),
+                style: TextStyle(color: Colors.grey),
               ),
             )
           : SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -77,88 +78,92 @@ class _YearlyAnalysisScreenState extends ConsumerState<YearlyAnalysisScreen> {
                       scrollDirection: Axis.horizontal,
                       children: [
                         _SummaryCard(
-                          title: 'En Çok Harcanan Ay',
-                          value: '${_getMonthName(topExpenseMonth.key)}\n${settings.isPrivacyMode ? '***₺' : _formatCurrency(topExpenseMonth.value, currencySymbol)}',
+                          title: 'yearly_analysis.top_expense_month'.tr(),
+                          value: '${_getMonthName(topExpenseMonth.key)}\n${settings.isPrivacyMode ? '***$displaySymbol' : _formatCurrency(topExpenseMonth.value, displaySymbol)}',
                           icon: Icons.calendar_month,
                           color: AppTheme.expenseColor,
                         ),
-                        const SizedBox(width: 12),
+                        SizedBox(width: 12),
                         if (topInvestmentMonth.value > 0) ...[
                           _SummaryCard(
-                            title: 'En Çok Yatırım',
-                            value: '${_getMonthName(topInvestmentMonth.key)}\n${settings.isPrivacyMode ? '***₺' : _formatCurrency(topInvestmentMonth.value, currencySymbol)}',
+                            title: 'yearly_analysis.top_investment_month'.tr(),
+                            value: '${_getMonthName(topInvestmentMonth.key)}\n${settings.isPrivacyMode ? '***$displaySymbol' : _formatCurrency(topInvestmentMonth.value, displaySymbol)}',
                             icon: Icons.savings,
-                            color: const Color(0xFFFFD700),
+                            color: Color(0xFFFFD700),
                           ),
-                          const SizedBox(width: 12),
+                          SizedBox(width: 12),
                         ],
                         _SummaryCard(
-                          title: 'En Yüksek Artan Gelir',
-                          value: '${_getMonthName(topGrowthMonth.key)}\n${settings.isPrivacyMode ? '***₺' : _formatCurrency(topGrowthMonth.value, currencySymbol)}',
+                          title: 'yearly_analysis.top_growth_month'.tr(),
+                          value: '${_getMonthName(topGrowthMonth.key)}\n${settings.isPrivacyMode ? '***$displaySymbol' : _formatCurrency(topGrowthMonth.value, displaySymbol)}',
                           icon: Icons.trending_up,
                           color: AppTheme.incomeColor,
                         ),
-                        const SizedBox(width: 12),
+                        SizedBox(width: 12),
                         if (topCategory != null)
                           _SummaryCard(
-                            title: 'En Çok Harcanan Kategori',
-                            value: '${topCategory.key}\n${settings.isPrivacyMode ? '***₺' : _formatCurrency(topCategory.value, currencySymbol)}',
+                            title: 'yearly_analysis.top_category'.tr(),
+                            value: '${topCategory.key}\n${settings.isPrivacyMode ? '***$displaySymbol' : _formatCurrency(topCategory.value, displaySymbol)}',
                             icon: Icons.category,
                             color: Colors.orange,
                           ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 32),
+                  SizedBox(height: 32),
 
                   // --- Monthly Chart ---
-                  const Text('Aylık Gelir - Gider - Yatırım',
+                  Text('yearly_analysis.chart_title'.tr(),
                       style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 16),
+                  SizedBox(height: 16),
                   Container(
                     height: 250,
-                    padding: const EdgeInsets.all(16),
+                    padding: EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       color: AppTheme.surfaceColor,
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: BarChart(
                       BarChartData(
-                        gridData: const FlGridData(show: false),
+                        gridData: FlGridData(show: false),
                         barTouchData: BarTouchData(
                           touchTooltipData: BarTouchTooltipData(
                             getTooltipColor: (_) => AppTheme.surfaceColor,
                             getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                              final isPrivacyMode = ref.watch(appSettingsProvider).isPrivacyMode;
-                              final type = rodIndex == 0 ? 'Gelir' : (rodIndex == 1 ? 'Gider' : 'Yatırım');
+                              final settings = ref.watch(appSettingsProvider);
+                              final isPrivacyMode = settings.isPrivacyMode;
+                              final currencySymbol = settings.selectedCurrency;
+                              final displaySymbol = currencySymbol == 'TRY' ? '₺' : (currencySymbol == 'USD' ? '\$' : '€');
+                              
+                              final type = rodIndex == 0 ? 'transactions.income'.tr() : (rodIndex == 1 ? 'transactions.expense'.tr() : 'transactions.investment'.tr());
                               final value = isPrivacyMode 
-                                  ? '***₺' 
-                                  : NumberFormat.currency(symbol: '₺', decimalDigits: 0, locale: 'tr_TR').format(rod.toY);
+                                  ? '***$displaySymbol' 
+                                  : NumberFormat.currency(symbol: displaySymbol, decimalDigits: 0, locale: context.locale.languageCode).format(rod.toY);
                               return BarTooltipItem(
                                 '$type\n$value',
-                                const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                                TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                               );
                             },
                           ),
                         ),
                         titlesData: FlTitlesData(
-                          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                          rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                          topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
                           bottomTitles: AxisTitles(
                             sideTitles: SideTitles(
                               showTitles: true,
                               getTitlesWidget: (value, meta) {
                                 return Padding(
-                                  padding: const EdgeInsets.only(top: 8.0),
+                                  padding: EdgeInsets.only(top: 8.0),
                                   child: Text(
                                     _getMonthNameShort(value.toInt()),
-                                    style: const TextStyle(color: Colors.grey, fontSize: 10),
+                                    style: TextStyle(color: Colors.grey, fontSize: 10),
                                   ),
                                 );
                               },
                             ),
                           ),
-                          leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)), // Hide Y axis numbers for clean look
+                          leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)), // Hide Y axis numbers for clean look
                         ),
                         borderData: FlBorderData(show: false),
                         barGroups: List.generate(12, (index) {
@@ -172,22 +177,22 @@ class _YearlyAnalysisScreenState extends ConsumerState<YearlyAnalysisScreen> {
                               BarChartRodData(toY: income, color: AppTheme.incomeColor, width: 6),
                               BarChartRodData(toY: expense, color: AppTheme.expenseColor, width: 6),
                               if (investment > 0)
-                                BarChartRodData(toY: investment, color: const Color(0xFFFFD700), width: 6),
+                                BarChartRodData(toY: investment, color: Color(0xFFFFD700), width: 6),
                             ],
                           );
                         }),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 32),
+                  SizedBox(height: 32),
 
                   // --- Category Pie Chart ---
-                  const Text('Kategori Bazlı Harcama',
+                  Text('yearly_analysis.expense_by_category'.tr(),
                       style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 16),
+                  SizedBox(height: 16),
                   Container(
                     height: 400,
-                    padding: const EdgeInsets.all(16),
+                    padding: EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       color: AppTheme.surfaceColor,
                       borderRadius: BorderRadius.circular(16),
@@ -198,16 +203,16 @@ class _YearlyAnalysisScreenState extends ConsumerState<YearlyAnalysisScreen> {
                       isPrivacyMode: settings.isPrivacyMode,
                     ),
                   ),
-                  const SizedBox(height: 32),
+                  SizedBox(height: 32),
 
                   // --- Investment Pie Chart ---
                    if (monthlyStats['investment']!.isNotEmpty && monthlyStats['investment']!.values.any((v) => v > 0)) ...[
-                    const Text('Kategori Bazlı Yatırım',
+                    Text('yearly_analysis.investment_by_category'.tr(),
                         style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 16),
+                    SizedBox(height: 16),
                     Container(
                       height: 400,
-                      padding: const EdgeInsets.all(16),
+                      padding: EdgeInsets.all(16),
                       decoration: BoxDecoration(
                         color: AppTheme.surfaceColor,
                         borderRadius: BorderRadius.circular(16),
@@ -219,7 +224,7 @@ class _YearlyAnalysisScreenState extends ConsumerState<YearlyAnalysisScreen> {
                         isPrivacyMode: settings.isPrivacyMode,
                       ),
                     ),
-                    const SizedBox(height: 50),
+                    SizedBox(height: 50),
                    ],
                 ],
               ),
@@ -246,7 +251,7 @@ class _YearlyAnalysisScreenState extends ConsumerState<YearlyAnalysisScreen> {
   }
 
   MapEntry<int, double> _findTopMonth(Map<int, double> stats) {
-    if (stats.isEmpty) return const MapEntry(0, 0);
+    if (stats.isEmpty) return MapEntry(0, 0);
     return stats.entries.reduce((a, b) => a.value > b.value ? a : b);
   }
 
@@ -269,7 +274,7 @@ class _YearlyAnalysisScreenState extends ConsumerState<YearlyAnalysisScreen> {
       }
     }
 
-    if (growth.isEmpty) return const MapEntry(0, 0);
+    if (growth.isEmpty) return MapEntry(0, 0);
     return growth.entries.reduce((a, b) => a.value > b.value ? a : b);
   }
 
@@ -285,25 +290,19 @@ class _YearlyAnalysisScreenState extends ConsumerState<YearlyAnalysisScreen> {
   }
 
   String _formatCurrency(double value, String symbol) {
-    return NumberFormat.currency(locale: 'tr_TR', symbol: symbol, decimalDigits: 0).format(value);
+    return NumberFormat.currency(locale: context.locale.languageCode, symbol: symbol, decimalDigits: 0).format(value);
   }
 
   String _getMonthName(int month) {
     if (month == 0) return '-';
-    const months = [
-      '', 'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
-      'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'
-    ];
-    return months[month];
+    final date = DateTime(_selectedYear, month, 1);
+    return DateFormat('MMMM', context.locale.languageCode).format(date);
   }
 
   String _getMonthNameShort(int month) {
     if (month == 0) return '-';
-    const months = [
-      '', 'Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz',
-      'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'
-    ];
-    return months[month];
+    final date = DateTime(_selectedYear, month, 1);
+    return DateFormat('MMM', context.locale.languageCode).format(date);
   }
 }
 
@@ -324,20 +323,20 @@ class _SummaryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: 160,
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppTheme.surfaceColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withOpacity(0.3), width: 1),
+        border: Border.all(color: color.withValues(alpha: 0.3), width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(icon, color: color, size: 28),
-          const Spacer(),
+          Spacer(),
           Text(title, style: TextStyle(color: Colors.grey[400], fontSize: 12)),
-          const SizedBox(height: 4),
-          Text(value, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+          SizedBox(height: 4),
+          Text(value, style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
         ],
       ),
     );
@@ -374,7 +373,7 @@ class _CategoryPieChart extends StatelessWidget {
       ..sort((a, b) => b.value.compareTo(a.value));
 
     if (sortedEntries.isEmpty) {
-      return const Center(child: Text('Veri yok', style: TextStyle(color: Colors.grey)));
+      return Center(child: Text('yearly_analysis.no_pie_data'.tr(), style: TextStyle(color: Colors.grey)));
     }
 
     return Column(
@@ -393,21 +392,21 @@ class _CategoryPieChart extends StatelessWidget {
                   value: e.value,
                   title: pct >= 5 ? '${pct.toInt()}%\n${e.key}' : '',
                   radius: 50,
-                  titleStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
+                  titleStyle: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
                   showTitle: pct >= 5,
                 );
               }).toList(),
             ),
           ),
         ),
-        const SizedBox(height: 16),
+        SizedBox(height: 16),
         Expanded(
           child: ListView.builder(
             itemCount: sortedEntries.length,
             itemBuilder: (context, index) {
               final e = sortedEntries[index];
               return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4),
+                padding: EdgeInsets.symmetric(vertical: 4),
                 child: Row(
                   children: [
                     Container(
@@ -418,16 +417,25 @@ class _CategoryPieChart extends StatelessWidget {
                         shape: BoxShape.circle,
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                         isPrivacyMode
-                            ? '${e.key} - *** TL'
-                            : '${e.key} - ${NumberFormat.currency(locale: 'tr_TR', symbol: '', decimalDigits: 0).format(e.value).trim()} TL',
-                        style: const TextStyle(color: Colors.white, fontSize: 12),
-                        overflow: TextOverflow.ellipsis,
+                    SizedBox(width: 8),
+                      Expanded(
+                        child: Consumer(
+                          builder: (context, ref, child) {
+                            final currencyCode = ref.watch(appSettingsProvider).selectedCurrency;
+                            final displaySymbol = currencyCode == 'TRY' ? '₺' : (currencyCode == 'USD' ? '\$' : '€');
+                            final format = NumberFormat.currency(locale: context.locale.languageCode, symbol: '', decimalDigits: 0);
+                            final amountStr = format.format(e.value).trim();
+                            
+                            return Text(
+                               isPrivacyMode
+                                  ? '${e.key} - *** $displaySymbol'
+                               : '${e.key} - $amountStr $displaySymbol',
+                              style: TextStyle(color: Colors.white, fontSize: 12),
+                              overflow: TextOverflow.ellipsis,
+                            );
+                          }
+                        ),
                       ),
-                    ),
                   ],
                 ),
               );

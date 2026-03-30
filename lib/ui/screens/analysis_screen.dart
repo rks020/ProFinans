@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import '../../providers/app_providers.dart';
 import '../../data/models/transaction.dart';
 import '../../data/models/enums.dart';
+import '../../data/services/currency_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/date_selector.dart';
 import '../widgets/transaction_detail_modal.dart';
@@ -22,15 +24,22 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final transactions = ref.watch(filteredTransactionsProvider);
+    final selectedDate = ref.watch(selectedDateProvider);
+    
+    // Use the global selected date for filtering in Analysis screen
+    final allTransactions = ref.watch(allGroupTransactionsProvider);
+    final transactions = allTransactions.where((t) => 
+      t.date.year == selectedDate.year && 
+      t.date.month == selectedDate.month
+    ).toList();
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Analiz'),
+        title: Text('analysis.title'.tr()),
         actions: [
           IconButton(
             icon: const Icon(Icons.playlist_remove_outlined),
-            tooltip: 'Veri Temizliği',
+            tooltip: 'analysis.data_clean'.tr(),
             onPressed: () => _showAuditModal(context, transactions),
           ),
         ],
@@ -45,7 +54,7 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
             const SizedBox(height: 24),
             _viewIndex == 0
                 ? _buildSankeyView(transactions)
-                : _buildTrendView(transactions),
+                : _buildTrendView(transactions, selectedDate),
           ],
         ),
       ),
@@ -54,15 +63,15 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
 
   Widget _buildToggleButtons() {
     return Container(
-      padding: const EdgeInsets.all(4),
+      padding: EdgeInsets.all(4),
       decoration: BoxDecoration(
         color: AppTheme.surfaceColor,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
         children: [
-          Expanded(child: _toggleButton(0, 'Akış', Icons.account_tree_outlined)),
-          Expanded(child: _toggleButton(1, 'Grafik', Icons.bar_chart_outlined)),
+          Expanded(child: _toggleButton(0, 'analysis.flow'.tr(), Icons.account_tree_outlined)),
+          Expanded(child: _toggleButton(1, 'analysis.chart'.tr(), Icons.bar_chart_outlined)),
         ],
       ),
     );
@@ -73,16 +82,16 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
     return GestureDetector(
       onTap: () => setState(() => _viewIndex = index),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12),
+        padding: EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF0D47A1) : Colors.transparent,
+          color: isSelected ? Color(0xFF0D47A1) : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(icon, color: isSelected ? Colors.white : Colors.grey, size: 20),
-            const SizedBox(width: 8),
+            SizedBox(width: 8),
             Text(
               label,
               style: TextStyle(
@@ -107,18 +116,33 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
     final expenseCountMap = <String, int>{};
     final investmentCountMap = <String, int>{};
 
+    final appSettings = ref.watch(appSettingsProvider);
+    final currencySymbol = appSettings.selectedCurrency;
+    final AsyncValue<Map<String, CurrencyRate>> ratesAsync = ref.watch(currencyRatesProvider);
+    final rates = ratesAsync.value;
+
     for (var t in transactions) {
+      double amount = t.amount;
+      if (currencySymbol != 'TRY' && rates != null) {
+        if (t.currency == currencySymbol && t.originalAmount != null) {
+          amount = t.originalAmount!;
+        } else {
+          final rate = rates[currencySymbol]?.buying ?? 1.0;
+          amount = t.amount / rate;
+        }
+      }
+
       colorMap[t.category] = Color(t.colorCode);
       if (t.type == TransactionType.income) {
-        income += t.amount;
-        incomeMap[t.category] = (incomeMap[t.category] ?? 0) + t.amount;
+        income += amount;
+        incomeMap[t.category] = (incomeMap[t.category] ?? 0) + amount;
       } else if (t.type == TransactionType.investment) {
-        investments += t.amount;
-        investmentMap[t.category] = (investmentMap[t.category] ?? 0) + t.amount;
+        investments += amount;
+        investmentMap[t.category] = (investmentMap[t.category] ?? 0) + amount;
         investmentCountMap[t.category] = (investmentCountMap[t.category] ?? 0) + 1;
       } else {
-        expenses += t.amount;
-        expenseMap[t.category] = (expenseMap[t.category] ?? 0) + t.amount;
+        expenses += amount;
+        expenseMap[t.category] = (expenseMap[t.category] ?? 0) + amount;
         expenseCountMap[t.category] = (expenseCountMap[t.category] ?? 0) + 1;
       }
     }
@@ -138,11 +162,17 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
     final investmentBreakdown = investmentMap.entries.map((e) => CategoryVolume(
       name: e.key,
       amount: e.value,
-      color: colorMap[e.key] ?? const Color(0xFFFFD700),
+      color: colorMap[e.key] ?? Color(0xFFFFD700),
     )).toList()..sort((a, b) => b.amount.compareTo(a.amount));
 
-    final isPrivacyMode = ref.watch(appSettingsProvider).isPrivacyMode;
-    final currencyFormat = NumberFormat.currency(locale: 'tr_TR', symbol: '₺', decimalDigits: 0);
+    final settings = ref.watch(appSettingsProvider);
+    final isPrivacyMode = settings.isPrivacyMode;
+    final displaySymbol = settings.selectedCurrency == 'TRY' ? '₺' : (settings.selectedCurrency == 'USD' ? '\$' : '€');
+    final currencyFormat = NumberFormat.currency(
+      locale: context.locale.toString(), 
+      symbol: displaySymbol, 
+      decimalDigits: 0
+    );
 
     // Dynamic height - no max cap so everything is visible
     final leftItems = incomeBreakdown.length;
@@ -165,134 +195,135 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
           expenseBreakdown: expenseBreakdown,
           investmentBreakdown: investmentBreakdown,
           isPrivacyMode: isPrivacyMode,
+          currencySymbol: displaySymbol,
         ),
-        const SizedBox(height: 24),
+        SizedBox(height: 24),
         // --- Gider Detayları ---
         if (expenseBreakdown.isNotEmpty) ...[
-          const Text(
-            'Gider Detayları',
+          Text(
+            'analysis.expense_details'.tr(),
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           ...expenseBreakdown.map((cat) {
             final count = expenseCountMap[cat.name] ?? 0;
             return Padding(
-              padding: const EdgeInsets.only(bottom: 8.0),
+              padding: EdgeInsets.only(bottom: 8.0),
               child: Row(
                 children: [
                   Container(
                     width: 12, height: 12,
                     decoration: BoxDecoration(color: cat.color, borderRadius: BorderRadius.circular(3)),
                   ),
-                  const SizedBox(width: 10),
+                  SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      '${cat.name} x $count',
-                      style: const TextStyle(color: Colors.white70, fontSize: 13),
+                      '${cat.name.tr()} x $count',
+                      style: TextStyle(color: Colors.white70, fontSize: 13),
                     ),
                   ),
                   Text(
-                    isPrivacyMode ? '***₺' : currencyFormat.format(cat.amount),
+                    isPrivacyMode ? '***$currencySymbol' : currencyFormat.format(cat.amount),
                     style: TextStyle(color: cat.color, fontWeight: FontWeight.bold, fontSize: 13),
                   ),
                 ],
               ),
             );
           }),
-          const Divider(color: Colors.white24, height: 16),
+          Divider(color: Colors.white24, height: 16),
           Row(
             children: [
-              const Expanded(
-                child: Text('Toplam Gider', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+              Expanded(
+                child: Text('analysis.total_expense'.tr(), style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
               ),
               Text(
-                isPrivacyMode ? '***₺' : currencyFormat.format(expenses),
-                style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 14),
+                isPrivacyMode ? '***$currencySymbol' : currencyFormat.format(expenses),
+                style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 14),
               ),
             ],
           ),
         ],
         // --- Yatırım Detayları ---
         if (investmentBreakdown.isNotEmpty) ...[
-          const SizedBox(height: 20),
-          const Text(
-            'Yatırım Detayları',
+          SizedBox(height: 20),
+          Text(
+            'analysis.investment_details'.tr(),
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           ...investmentBreakdown.map((cat) {
             final count = investmentCountMap[cat.name] ?? 0;
             return Padding(
-              padding: const EdgeInsets.only(bottom: 8.0),
+              padding: EdgeInsets.only(bottom: 8.0),
               child: Row(
                 children: [
                   Container(
                     width: 12, height: 12,
                     decoration: BoxDecoration(color: cat.color, borderRadius: BorderRadius.circular(3)),
                   ),
-                  const SizedBox(width: 10),
+                  SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      '${cat.name} x $count',
-                      style: const TextStyle(color: Colors.white70, fontSize: 13),
+                      '${cat.name.tr()} x $count',
+                      style: TextStyle(color: Colors.white70, fontSize: 13),
                     ),
                   ),
                   Text(
-                    isPrivacyMode ? '***₺' : currencyFormat.format(cat.amount),
+                    isPrivacyMode ? '***$currencySymbol' : currencyFormat.format(cat.amount),
                     style: TextStyle(color: cat.color, fontWeight: FontWeight.bold, fontSize: 13),
                   ),
                 ],
               ),
             );
           }),
-          const Divider(color: Colors.white24, height: 16),
+          Divider(color: Colors.white24, height: 16),
           Row(
             children: [
-              const Expanded(
-                child: Text('Toplam Yatırım', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+              Expanded(
+                child: Text('analysis.total_investment'.tr(), style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
               ),
               Text(
-                isPrivacyMode ? '***₺' : currencyFormat.format(investments),
-                style: const TextStyle(color: Color(0xFFFFD700), fontWeight: FontWeight.bold, fontSize: 14),
+                isPrivacyMode ? '***$currencySymbol' : currencyFormat.format(investments),
+                style: TextStyle(color: Color(0xFFFFD700), fontWeight: FontWeight.bold, fontSize: 14),
               ),
             ],
           ),
         ],
         // --- Genel Toplam ---
         if (expenseBreakdown.isNotEmpty || investmentBreakdown.isNotEmpty) ...[
-          const SizedBox(height: 16),
-          const Divider(color: Colors.white38, height: 16, thickness: 1.5),
+          SizedBox(height: 16),
+          Divider(color: Colors.white38, height: 16, thickness: 1.5),
           Row(
             children: [
-              const Expanded(
-                child: Text('Toplam Harcama', style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold)),
+              Expanded(
+                child: Text('analysis.total_spending'.tr(), style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold)),
               ),
               Text(
-                isPrivacyMode ? '***₺' : currencyFormat.format(expenses + investments),
-                style: const TextStyle(color: Colors.orangeAccent, fontWeight: FontWeight.bold, fontSize: 15),
+                isPrivacyMode ? '***$currencySymbol' : currencyFormat.format(expenses + investments),
+                style: TextStyle(color: Colors.orangeAccent, fontWeight: FontWeight.bold, fontSize: 15),
               ),
             ],
           ),
           // --- Negatif gelir uyarısı ---
           if (income - expenses - investments < 0) ...[
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               decoration: BoxDecoration(
-                color: Colors.red.withOpacity(0.15),
+                color: Colors.red.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.redAccent.withOpacity(0.4)),
+                border: Border.all(color: Colors.redAccent.withValues(alpha: 0.4)),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.warning_amber_rounded, color: Colors.redAccent, size: 20),
-                  const SizedBox(width: 8),
+                  Icon(Icons.warning_amber_rounded, color: Colors.redAccent, size: 20),
+                  SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       isPrivacyMode 
-                          ? '- Geliriniz (***₺)' 
-                          : '- Geliriniz: ${currencyFormat.format((expenses + investments - income).abs())}',
-                      style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 14),
+                          ? 'analysis.income_warning'.tr(namedArgs: {'amount': '***$currencySymbol'}) 
+                          : 'analysis.income_warning'.tr(namedArgs: {'amount': currencyFormat.format((expenses + investments - income).abs())}),
+                      style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 14),
                     ),
                   ),
                 ],
@@ -300,21 +331,26 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
             ),
           ],
         ],
-        const SizedBox(height: 24),
+        SizedBox(height: 24),
       ],
     );
   }
 
-  Widget _buildTrendView(List<Transaction> transactions) {
-    final allTransactions = ref.watch(allGroupTransactionsProvider);
+  Widget _buildTrendView(List<Transaction> transactions, DateTime selectedDate) {
+    final monthName = DateFormat('MMMM', context.locale.languageCode).format(selectedDate);
+    final yearStr = selectedDate.year.toString();
+    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Son 6 Ay Trend', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        Text(
+          'analysis.monthly_data'.tr(namedArgs: {'month': monthName, 'year': yearStr}), 
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)
+        ),
         const SizedBox(height: 16),
         SizedBox(
-          height: 300,
-          child: _TrendChart(transactions: allTransactions),
+          height: 350,
+          child: _TrendChart(selectedDate: selectedDate),
         ),
       ],
     );
@@ -331,116 +367,107 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
 }
 
 class _TrendChart extends ConsumerWidget {
-  final List<Transaction> transactions;
+  final DateTime selectedDate;
 
-  const _TrendChart({required this.transactions});
+  const _TrendChart({required this.selectedDate});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (transactions.isEmpty) return const Center(child: Text("Veri Yok", style: TextStyle(color: Colors.grey)));
+    final transactions = ref.watch(allGroupTransactionsProvider);
+    if (transactions.isEmpty) return Center(child: Text("analysis.no_data".tr(), style: const TextStyle(color: Colors.grey)));
 
     final appSettings = ref.watch(appSettingsProvider);
+    final currencySymbol = appSettings.selectedCurrency;
+    final AsyncValue<Map<String, CurrencyRate>> ratesAsync = ref.watch(currencyRatesProvider);
+    final rates = ratesAsync.value;
     final isPrivacyMode = appSettings.isPrivacyMode;
 
-    final now = DateTime.now();
-    // Generate dates for current month + previous 5 months (total 6)
-    final last6Months = List.generate(6, (i) => DateTime(now.year, now.month - (5 - i), 1));
+    // Generate data for the last 6 months
+    final last6Months = List.generate(6, (i) {
+      final date = DateTime(DateTime.now().year, DateTime.now().month - 5 + i, 1);
+      final monthTrans = transactions.where((t) => 
+        t.date.year == date.year && t.date.month == date.month
+      );
+      
+      double income = 0;
+      double expense = 0;
+      double investment = 0;
 
-    final data = last6Months.map((month) {
-      final monthlyTrans = transactions.where((t) => t.date.year == month.year && t.date.month == month.month);
-      final income = monthlyTrans.where((t) => t.type == TransactionType.income).fold(0.0, (sum, t) => sum + t.amount);
-      final expense = monthlyTrans.where((t) => t.type == TransactionType.expense).fold(0.0, (sum, t) => sum + t.amount);
-      final investment = monthlyTrans.where((t) => t.type == TransactionType.investment).fold(0.0, (sum, t) => sum + t.amount);
+      for (var t in monthTrans) {
+        double amount = t.amount;
+        if (currencySymbol != 'TRY' && rates != null) {
+          if (t.currency == currencySymbol && t.originalAmount != null) {
+            amount = t.originalAmount!;
+          } else {
+            final rate = rates[currencySymbol]?.buying ?? 1.0;
+            amount = t.amount / rate;
+          }
+        }
+
+        if (t.type == TransactionType.income) {
+          income += amount;
+        } else if (t.type == TransactionType.expense) {
+          expense += amount;
+        } else if (t.type == TransactionType.investment) {
+          investment += amount;
+        }
+      }
+      
       return {
-        'month': DateFormat('MMM', 'tr_TR').format(month),
+        'month': DateFormat('MMM', context.locale.languageCode).format(date),
         'income': income,
         'expense': expense,
         'investment': investment,
+        'savings': income - (expense + investment),
       };
-    }).toList();
+    });
 
-    // Calculate max Y for scale
     double maxY = 0;
-    for (var d in data) {
-      final inc = d['income'] as double;
-      final exp = d['expense'] as double;
-      final inv = d['investment'] as double;
-      if (inc > maxY) maxY = inc;
-      if (exp > maxY) maxY = exp;
-      if (inv > maxY) maxY = inv;
+    for (var m in last6Months) {
+      final vals = [m['income'] as double, m['expense'] as double, m['investment'] as double, (m['savings'] as double).abs()];
+      for (var v in vals) if (v > maxY) maxY = v;
     }
-    maxY = maxY * 1.2; // Add buffer
+    maxY = maxY * 1.2;
     if (maxY == 0) maxY = 1000;
 
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Expanded(
           child: BarChart(
             BarChartData(
-              alignment: BarChartAlignment.spaceAround,
               maxY: maxY,
               barTouchData: BarTouchData(
                 touchTooltipData: BarTouchTooltipData(
                   getTooltipColor: (_) => AppTheme.surfaceColor,
                   getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                    final type = rodIndex == 0 ? 'Gelir' : (rodIndex == 1 ? 'Gider' : 'Yatırım');
+                    final type = rodIndex == 0 ? 'transactions.income'.tr() : 
+                                (rodIndex == 1 ? 'transactions.expense'.tr() : 
+                                (rodIndex == 2 ? 'transactions.investment'.tr() : 'analysis.savings'.tr()));
+                    final displaySymbol = currencySymbol == 'TRY' ? '₺' : (currencySymbol == 'USD' ? '\$' : '€');
                     final value = isPrivacyMode 
-                        ? '***₺' 
-                        : NumberFormat.currency(symbol: '₺', decimalDigits: 0, locale: 'tr_TR').format(rod.toY);
+                        ? '***$displaySymbol' 
+                        : NumberFormat.currency(symbol: displaySymbol, decimalDigits: 0, locale: context.locale.languageCode).format(rod.toY);
                     return BarTooltipItem(
                       '$type\n$value',
-                      const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                      TextStyle(color: rod.gradient?.colors.first ?? rod.color, fontWeight: FontWeight.bold, fontSize: 12),
                     );
                   },
                 ),
               ),
-              barGroups: List.generate(data.length, (index) {
-                final item = data[index];
-                final income = item['income'] as double;
-                final expense = item['expense'] as double;
-                final investment = item['investment'] as double;
-
-                return BarChartGroupData(
-                  x: index,
-                  barsSpace: 4,
-                  barRods: [
-                    BarChartRodData(
-                      toY: income,
-                      color: AppTheme.incomeColor,
-                      width: 12,
-                      borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
-                    ),
-                    BarChartRodData(
-                      toY: expense,
-                      color: AppTheme.expenseColor,
-                      width: 12,
-                      borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
-                    ),
-                    BarChartRodData(
-                      toY: investment,
-                      color: const Color(0xFFFFD700),
-                      width: 12,
-                      borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
-                    ),
-                  ],
-                );
-              }),
               titlesData: FlTitlesData(
                 bottomTitles: AxisTitles(
                   sideTitles: SideTitles(
                     showTitles: true,
                     getTitlesWidget: (val, meta) {
-                      if (val.toInt() >= data.length) return const SizedBox();
+                      if (val.toInt() < 0 || val.toInt() >= last6Months.length) return const SizedBox();
                       return Padding(
                         padding: const EdgeInsets.only(top: 8.0),
                         child: Text(
-                          data[val.toInt()]['month'] as String,
-                          style: const TextStyle(color: Colors.grey, fontSize: 11),
+                          last6Months[val.toInt()]['month'] as String,
+                          style: const TextStyle(color: Colors.grey, fontSize: 10),
                         ),
                       );
                     },
-                    reservedSize: 30,
                   ),
                 ),
                 leftTitles: AxisTitles(
@@ -450,7 +477,7 @@ class _TrendChart extends ConsumerWidget {
                     getTitlesWidget: (val, meta) {
                       if (val == 0 || isPrivacyMode) return const SizedBox();
                       return Text(
-                        NumberFormat.compact(locale: 'tr_TR').format(val),
+                        NumberFormat.compact(locale: context.locale.languageCode).format(val),
                         style: const TextStyle(color: Colors.grey, fontSize: 10),
                       );
                     },
@@ -466,18 +493,32 @@ class _TrendChart extends ConsumerWidget {
                 getDrawingHorizontalLine: (value) => const FlLine(color: Colors.white10, strokeWidth: 1),
               ),
               borderData: FlBorderData(show: false),
+              barGroups: last6Months.asMap().entries.map((entry) {
+                final i = entry.key;
+                final data = entry.value;
+                return BarChartGroupData(
+                  x: i,
+                  barRods: [
+                    BarChartRodData(toY: data['income'] as double, color: AppTheme.incomeColor, width: 6),
+                    BarChartRodData(toY: data['expense'] as double, color: AppTheme.expenseColor, width: 6),
+                    BarChartRodData(toY: data['investment'] as double, color: const Color(0xFFFFD700), width: 6),
+                    BarChartRodData(toY: (data['savings'] as double).clamp(0.0, double.infinity), color: Colors.cyanAccent, width: 6),
+                  ],
+                );
+              }).toList(),
             ),
           ),
         ),
         const SizedBox(height: 16),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+        Wrap(
+          spacing: 16,
+          runSpacing: 8,
+          alignment: WrapAlignment.center,
           children: [
-            _LegendItem(color: AppTheme.incomeColor, label: 'Gelirler'),
-            const SizedBox(width: 16),
-            _LegendItem(color: AppTheme.expenseColor, label: 'Giderler'),
-            const SizedBox(width: 16),
-            _LegendItem(color: const Color(0xFFFFD700), label: 'Yatırımlar'),
+            _LegendItem(color: AppTheme.incomeColor, label: 'transactions.income'.tr()),
+            _LegendItem(color: AppTheme.expenseColor, label: 'transactions.expense'.tr()),
+            _LegendItem(color: const Color(0xFFFFD700), label: 'transactions.investment'.tr()),
+            _LegendItem(color: Colors.cyanAccent, label: 'analysis.savings'.tr()),
           ],
         ),
       ],
@@ -494,14 +535,15 @@ class _LegendItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          width: 12,
-          height: 12,
-          decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(3)),
+          width: 8,
+          height: 8,
+          decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(2)),
         ),
         const SizedBox(width: 8),
-        Text(label, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+        Text(label, style: const TextStyle(color: Colors.grey, fontSize: 11)),
       ],
     );
   }
@@ -510,18 +552,25 @@ class _LegendItem extends StatelessWidget {
 class _AuditListModal extends ConsumerWidget {
   final List<Transaction> transactions;
 
-  const _AuditListModal({super.key, required this.transactions});
+  const _AuditListModal({required this.transactions});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final appSettings = ref.watch(appSettingsProvider);
+    final currencySymbol = appSettings.selectedCurrency;
+    final AsyncValue<Map<String, CurrencyRate>> ratesAsync = ref.watch(currencyRatesProvider);
+    final isPrivacyMode = appSettings.isPrivacyMode;
+    final displaySymbol = currencySymbol == 'TRY' ? '₺' : (currencySymbol == 'USD' ? '\$' : '€');
+    final format = NumberFormat.currency(symbol: displaySymbol, decimalDigits: 0, locale: context.locale.languageCode);
+
     return DraggableScrollableSheet(
       initialChildSize: 0.8,
       minChildSize: 0.5,
       maxChildSize: 0.95,
       builder: (_, controller) {
         return Container(
-          padding: const EdgeInsets.all(16),
-          decoration: const BoxDecoration(
+          padding: EdgeInsets.all(16),
+          decoration: BoxDecoration(
             color: AppTheme.surfaceColor,
             borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
           ),
@@ -531,14 +580,14 @@ class _AuditListModal extends ConsumerWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Veri Listesi (Tümü)', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                  IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close)),
+                  Text('analysis.data_list_all'.tr(), style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  IconButton(onPressed: () => Navigator.pop(context), icon: Icon(Icons.close)),
                 ],
               ),
-              const Divider(),
+              Divider(),
               Expanded(
                 child: transactions.isEmpty 
-                    ? const Center(child: Text('Bu ay için veri yok', style: TextStyle(color: Colors.grey)))
+                    ? Center(child: Text('analysis.no_data_this_month'.tr(), style: TextStyle(color: Colors.grey)))
                     : ListView.builder(
                         controller: controller,
                         itemCount: transactions.length,
@@ -546,24 +595,36 @@ class _AuditListModal extends ConsumerWidget {
                           final t = transactions[index];
                           final isIncome = t.type == TransactionType.income;
                           final isInvestment = t.type == TransactionType.investment;
-                          final format = NumberFormat.currency(symbol: '₺', decimalDigits: 0);
                           
                           Color displayColor = isIncome 
                               ? AppTheme.incomeColor 
-                              : (isInvestment ? const Color(0xFFFFD700) : AppTheme.expenseColor);
+                              : (isInvestment ? Color(0xFFFFD700) : AppTheme.expenseColor);
                           
                           IconData displayIcon = isIncome 
                               ? Icons.arrow_downward 
                               : (isInvestment ? Icons.savings : Icons.arrow_upward);
+
+                          double displayAmount = t.amount;
+                          if (currencySymbol != 'TRY') {
+                            if (t.currency == currencySymbol && t.originalAmount != null) {
+                              displayAmount = t.originalAmount!;
+                            } else {
+                              final rates = ratesAsync.value;
+                              if (rates != null) {
+                                final rate = rates[currencySymbol]?.buying ?? 1.0;
+                                displayAmount = t.amount / rate;
+                              }
+                            }
+                          }
 
                           return Dismissible(
                              key: Key(t.id),
                              direction: DismissDirection.endToStart,
                              background: Container(
                                alignment: Alignment.centerRight,
-                               padding: const EdgeInsets.only(right: 20),
+                               padding: EdgeInsets.only(right: 20),
                                color: Colors.red,
-                               child: const Icon(Icons.delete, color: Colors.white),
+                               child: Icon(Icons.delete, color: Colors.white),
                              ),
                              onDismissed: (_) {
                                ref.read(transactionsProvider.notifier).deleteTransaction(t.id);
@@ -578,20 +639,20 @@ class _AuditListModal extends ConsumerWidget {
                                  );
                                },
                                leading: CircleAvatar(
-                                 backgroundColor: displayColor.withOpacity(0.2),
+                                 backgroundColor: displayColor.withValues(alpha: 0.2),
                                  child: Icon(
                                    displayIcon,
                                    color: displayColor,
                                    size: 20,
                                  ),
                                ),
-                               title: Text(t.title, style: const TextStyle(color: Colors.white)),
+                               title: Text(t.title, style: TextStyle(color: Colors.white)),
                                subtitle: Text(
-                                 '${DateFormat('dd MMM', 'tr_TR').format(t.date)} • ${t.category}', 
-                                 style: const TextStyle(color: Colors.grey)
+                                 '${DateFormat('dd MMM', context.locale.languageCode).format(t.date)} • ${t.category.tr()}', 
+                                 style: TextStyle(color: Colors.grey)
                                ),
                                trailing: Text(
-                                 '${isIncome ? '+' : '-'}${ref.watch(appSettingsProvider).isPrivacyMode ? '***' : format.format(t.amount).replaceAll('₺', '')}₺',
+                                 '${isIncome ? '+' : '-'}${isPrivacyMode ? '*** $currencySymbol' : format.format(displayAmount)}',
                                  style: TextStyle(
                                    color: displayColor,
                                    fontWeight: FontWeight.bold,

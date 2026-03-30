@@ -1,7 +1,8 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'dart:ui' as ui;
 import 'dart:math' as math;
+import 'package:visibility_detector/visibility_detector.dart';
 
 class SankeyFlowChart extends StatefulWidget {
   final double income;
@@ -13,6 +14,7 @@ class SankeyFlowChart extends StatefulWidget {
   final List<CategoryVolume> investmentBreakdown;
   final bool isPrivacyMode;
   final double height;
+  final String currencySymbol;
 
   const SankeyFlowChart({
     super.key,
@@ -24,6 +26,7 @@ class SankeyFlowChart extends StatefulWidget {
     this.investmentBreakdown = const [],
     this.isPrivacyMode = false,
     this.height = 350,
+    this.currencySymbol = '₺',
   });
 
   @override
@@ -38,11 +41,11 @@ class _SankeyFlowChartState extends State<SankeyFlowChart> with SingleTickerProv
   void initState() {
     super.initState();
     _controller = AnimationController(
-      duration: const Duration(milliseconds: 2500),
+      duration: Duration(milliseconds: 2500),
       vsync: this,
     );
     _animation = CurvedAnimation(parent: _controller, curve: Curves.easeInOut);
-    _controller.forward();
+    // Removed _controller.forward() from initState; managed by VisibilityDetector instead
   }
 
   @override
@@ -63,31 +66,44 @@ class _SankeyFlowChartState extends State<SankeyFlowChart> with SingleTickerProv
   @override
   Widget build(BuildContext context) {
     if (widget.income == 0 && widget.expenses == 0) {
-      return const Center(
+      return Center(
         child: Text(
-          'Akış gösterilecek veri bulunamadı',
+          'analysis.no_flow_data'.tr(),
           style: TextStyle(color: Colors.grey),
         ),
       );
     }
 
-    return AnimatedBuilder(
-      animation: _animation,
-      builder: (context, child) {
-        return CustomPaint(
-          size: Size(double.infinity, widget.height),
-          painter: FlowPainter(
-            income: widget.income,
-            expenses: widget.expenses,
-            investments: widget.investments,
-            incomeBreakdown: widget.incomeBreakdown,
-            expenseBreakdown: widget.expenseBreakdown,
-            investmentBreakdown: widget.investmentBreakdown,
-            isPrivacyMode: widget.isPrivacyMode,
-            progress: _animation.value,
-          ),
-        );
+    return VisibilityDetector(
+      key: const Key('sankey-flow-chart-visibility-key'),
+      onVisibilityChanged: (info) {
+        if (info.visibleFraction > 0.5) {
+          // Restart animation when becoming significantly visible
+          if (!_controller.isAnimating) {
+            _controller.forward(from: 0);
+          }
+        }
       },
+      child: AnimatedBuilder(
+        animation: _animation,
+        builder: (context, child) {
+          return CustomPaint(
+            size: Size(double.infinity, widget.height),
+            painter: FlowPainter(
+              income: widget.income,
+              expenses: widget.expenses,
+              investments: widget.investments,
+              incomeBreakdown: widget.incomeBreakdown,
+              expenseBreakdown: widget.expenseBreakdown,
+              investmentBreakdown: widget.investmentBreakdown,
+              isPrivacyMode: widget.isPrivacyMode,
+              progress: _animation.value,
+              currencySymbol: widget.currencySymbol,
+              context: context,
+            ),
+          );
+        },
+      ),
     );
   }
 }
@@ -109,6 +125,8 @@ class FlowPainter extends CustomPainter {
   final List<CategoryVolume> investmentBreakdown;
   final bool isPrivacyMode;
   final double progress;
+  final String currencySymbol;
+  final BuildContext context;
 
   FlowPainter({
     required this.income,
@@ -119,6 +137,8 @@ class FlowPainter extends CustomPainter {
     required this.investmentBreakdown,
     required this.isPrivacyMode,
     required this.progress,
+    required this.currencySymbol,
+    required this.context,
   });
 
   // Sqrt-based scaling to compress large values and boost small ones
@@ -150,13 +170,17 @@ class FlowPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     if (size.height <= 0 || size.width <= 0) return;
 
-    final currencyFormat = NumberFormat.currency(locale: 'tr_TR', symbol: '₺', decimalDigits: 0);
+    final currencyFormat = NumberFormat.currency(
+      locale: context.locale.toString(), 
+      symbol: currencySymbol, 
+      decimalDigits: 0
+    );
 
     // Layout Constants
-    const double nodeWidth = 12.0;
-    const double padding = 20.0;
-    const double nodeGap = 5.0;
-    const double minNodeHeight = 20.0;
+    double nodeWidth = 12.0;
+    double padding = 20.0;
+    double nodeGap = 5.0;
+    double minNodeHeight = 20.0;
     
     // Coordinates
     final double leftX = padding;
@@ -173,24 +197,29 @@ class FlowPainter extends CustomPainter {
     List<_Node> leftNodes = [];
     if (incomeBreakdown.isEmpty && income > 0) {
       leftNodes.add(_Node(
-        label: "Gelir", 
+        label: "analysis.income".tr(), 
         value: income, 
-        color: const Color(0xFF0055D4), 
+        color: Color(0xFF0055D4), 
         isFallback: true
       ));
     } else {
       for (var inc in incomeBreakdown) {
-        leftNodes.add(_Node(label: inc.name, value: inc.amount, color: inc.color));
+        // Fix: Use .trim() to ensure keys match translation file exactly
+        leftNodes.add(_Node(label: inc.name.trim().tr(), value: inc.amount, color: inc.color));
       }
     }
 
     // --- Right Layout (Destinations) ---
     final double currentSavings = (income - expenses - investments).clamp(0.0, income);
     List<_Node> rightNodes = [];
-    for (var exp in expenseBreakdown) rightNodes.add(_Node(label: exp.name, value: exp.amount, color: exp.color, isRight: true));
-    for (var inv in investmentBreakdown) rightNodes.add(_Node(label: inv.name, value: inv.amount, color: inv.color, isRight: true));
+    for (var exp in expenseBreakdown) {
+      rightNodes.add(_Node(label: exp.name.trim().tr(), value: exp.amount, color: exp.color, isRight: true));
+    }
+    for (var inv in investmentBreakdown) {
+      rightNodes.add(_Node(label: inv.name.trim().tr(), value: inv.amount, color: inv.color, isRight: true));
+    }
     if (currentSavings > 0) {
-      rightNodes.add(_Node(label: "Artan Gelir", value: currentSavings, color: const Color(0xFF4CAF50), isRight: true));
+      rightNodes.add(_Node(label: "analysis.surplus_income".tr(), value: currentSavings, color: Color(0xFF4CAF50), isRight: true));
     }
 
     // 2. Calculate Heights using sqrt scaling
@@ -227,8 +256,8 @@ class FlowPainter extends CustomPainter {
       if (h < 0) return;
       final double visualsH = h < 2 ? 2 : h;
       canvas.drawRRect(
-        RRect.fromRectAndRadius(Rect.fromLTWH(x, y, nodeWidth, visualsH), const Radius.circular(4)),
-        Paint()..color = c.withOpacity(opacity)..isAntiAlias = true,
+        RRect.fromRectAndRadius(Rect.fromLTWH(x, y, nodeWidth, visualsH), Radius.circular(4)),
+        Paint()..color = c.withValues(alpha: opacity)..isAntiAlias = true,
       );
     }
     
@@ -247,7 +276,7 @@ class FlowPainter extends CustomPainter {
           _drawLabel(
             canvas, 
             node.label, 
-            isPrivacyMode ? '***₺' : currencyFormat.format(node.value), 
+            isPrivacyMode ? '***$currencySymbol' : currencyFormat.format(node.value), 
             Offset(leftX + 20, node.y + node.height / 2),
             opacity: leftBarsProgress
           );
@@ -273,7 +302,7 @@ class FlowPainter extends CustomPainter {
           leftX + nodeWidth, sy, 
           midX, ty, 
           node.height, 
-          node.color.withOpacity(0.3), 
+          node.color.withValues(alpha: 0.3), 
           leftToMidProgress
         );
       }
@@ -282,13 +311,13 @@ class FlowPainter extends CustomPainter {
     
     // Draw the single blue middle bar
     if (midBarProgress > 0) {
-      const Color midBarColor = Color(0xFF1565C0);
+      Color midBarColor = Color(0xFF1565C0);
       drawNodeRect(midX, topPad, midBarHeight, midBarColor, midBarProgress);
       
       // "Toplam Gelir" label at the top of the blue bar
-      final incomeStr = isPrivacyMode ? '***₺' : currencyFormat.format(income);
+      final incomeStr = isPrivacyMode ? '***$currencySymbol' : currencyFormat.format(income);
       _drawLabel(
-        canvas, "Toplam Gelir", incomeStr, 
+        canvas, "analysis.total_income".tr(), incomeStr, 
         Offset(midX + nodeWidth / 2, topPad + 18), 
         alignRight: false, opacity: midBarProgress, isCenter: true
       );
@@ -301,7 +330,7 @@ class FlowPainter extends CustomPainter {
         _drawLabel(
           canvas, 
           node.label, 
-          isPrivacyMode ? '***₺' : currencyFormat.format(node.value), 
+          isPrivacyMode ? '***$currencySymbol' : currencyFormat.format(node.value), 
           Offset(rightX - 10, node.y + node.height / 2),
           alignRight: true,
           opacity: rightBarsProgress
@@ -329,7 +358,7 @@ class FlowPainter extends CustomPainter {
           midX + nodeWidth, sy, 
           rightX, ty, 
           math.min(flowShare, node.height), 
-          node.color.withOpacity(0.3), 
+          node.color.withValues(alpha: 0.3), 
           midToRightProgress
         );
       }
@@ -371,8 +400,25 @@ class FlowPainter extends CustomPainter {
 
     final span = TextSpan(
       children: [
-        TextSpan(text: '$label\n', style: TextStyle(color: Colors.white.withOpacity(0.9 * opacity), fontSize: 9, fontWeight: FontWeight.w500)),
-        TextSpan(text: value, style: TextStyle(color: Colors.white.withOpacity(opacity), fontSize: 10, fontWeight: FontWeight.bold)),
+        TextSpan(
+          text: '$label\n', 
+          style: TextStyle(
+            color: Colors.white, // Pure white as requested by user
+            fontSize: 9, 
+            fontWeight: FontWeight.w700, // Slightly bolder for better visibility
+          ),
+        ),
+        TextSpan(
+          text: value, 
+          style: TextStyle(
+            color: Colors.white, // Pure white as requested by user
+            fontSize: 11, // Increased size slightly
+            fontWeight: FontWeight.w900, // Extra bold for primary value
+            shadows: [
+              Shadow(color: Colors.black.withValues(alpha: 0.5), blurRadius: 4),
+            ],
+          ),
+        ),
       ],
     );
     final tp = TextPainter(
@@ -396,8 +442,8 @@ class FlowPainter extends CustomPainter {
     final double ry = offset.dy - rectHeight / 2;
 
     canvas.drawRRect(
-      RRect.fromRectAndRadius(Rect.fromLTWH(rx, ry, rectWidth, rectHeight), const Radius.circular(6)),
-      Paint()..color = Colors.black.withOpacity(0.6 * opacity)
+      RRect.fromRectAndRadius(Rect.fromLTWH(rx, ry, rectWidth, rectHeight), Radius.circular(8)),
+      Paint()..color = Colors.black.withValues(alpha: 0.85 * opacity) // Slightly darker background for focus
     );
 
     tp.paint(canvas, Offset(rx + 5, ry + 2));
